@@ -374,7 +374,7 @@
       align-items: center;
       justify-content: center;
       padding: 20px;
-      z-index: 100;
+      z-index: 1100;
       transition: background-color 0.18s ease;
     }
 
@@ -571,7 +571,7 @@
       padding: 12px 18px;
       font-size: 0.86rem;
       box-shadow: var(--modal-shadow);
-      z-index: 200;
+      z-index: 2000;
       display: none;
       max-width: 380px;
     }
@@ -1012,6 +1012,7 @@
         <div class="modal-actions">
           <button type="button" id="cancelClientIdBtn" class="btn-secondary">Cancel</button>
           <div class="modal-actions-right">
+            <button type="button" id="removeClientIdBtn" class="btn-secondary" style="color: var(--danger-text);" title="Remove stored OAuth Client ID">Clear</button>
             <button type="submit" class="btn-primary">Save Client ID</button>
           </div>
         </div>
@@ -2513,16 +2514,28 @@
       });
     });
 
+    function openClientIdModal() {
+      googleClientIdInput.value = localStorage.getItem(CLIENT_ID_STORAGE_KEY) || '';
+      clientIdModalBackdrop.classList.add('open');
+      googleClientIdInput.focus();
+    }
+
+    function closeClientIdModal() {
+      clientIdModalBackdrop.classList.remove('open');
+    }
+
     function initGoogleAuth() {
       const clientId = (localStorage.getItem(CLIENT_ID_STORAGE_KEY) || '').trim();
       const gSignInBtn = document.getElementById('gSignInBtn');
 
       if (!clientId) {
         gSignInBtn.innerHTML = `
-          <div style="font-size: 0.8rem; color: var(--text-muted); padding: 8px 12px; border: 1px dashed var(--border-color); background: var(--surface-light); text-align: center; width: 100%;">
-            Google OAuth Client ID not configured.<br>
-            <span style="font-size: 0.76rem;">Click <strong>OAuth Client ID</strong> below to configure, or <strong>Dev / Local Sign In</strong> for local testing.</span>
+          <div style="font-size: 0.82rem; color: var(--text-muted); padding: 12px 14px; border: 1px dashed var(--border-color); background: var(--surface-light); text-align: center; width: 100%;">
+            <div style="margin-bottom: 8px;">Google OAuth Client ID not configured.</div>
+            <button type="button" id="promptConfigureBtn" class="btn-primary btn-sm" style="font-size: 0.8rem; padding: 6px 14px;">Configure OAuth Client ID</button>
           </div>`;
+        const promptBtn = document.getElementById('promptConfigureBtn');
+        if (promptBtn) promptBtn.addEventListener('click', openClientIdModal);
         return;
       }
 
@@ -2531,6 +2544,10 @@
           window.google.accounts.id.initialize({
             client_id: clientId,
             callback: handleGoogleCredentialResponse,
+            error_callback: (err) => {
+              console.warn('GIS error:', err);
+              showLoginError('Google Sign-In error: ' + (err.message || err.type || 'Please verify that https://charliedvs.github.io is added to Authorized JavaScript origins in Google Cloud Console.'));
+            },
             auto_select: false
           });
           gSignInBtn.innerHTML = '';
@@ -2545,32 +2562,34 @@
           });
         } catch (err) {
           console.warn('GIS init error:', err);
-          gSignInBtn.innerHTML = `<div style="font-size: 0.8rem; color: var(--danger-text);">Google Sign-In error: ${escapeHtml(err.message)}</div>`;
+          gSignInBtn.innerHTML = `<div style="font-size: 0.8rem; color: var(--danger-text); padding: 8px;">Google Sign-In error: ${escapeHtml(err.message)}</div>`;
         }
       } else {
         setTimeout(initGoogleAuth, 400);
       }
     }
 
-    configClientIdBtn.addEventListener('click', () => {
-      googleClientIdInput.value = localStorage.getItem(CLIENT_ID_STORAGE_KEY) || '';
-      clientIdModalBackdrop.classList.add('open');
-      googleClientIdInput.focus();
-    });
-
-    function closeClientIdModal() {
-      clientIdModalBackdrop.classList.remove('open');
-    }
-
+    configClientIdBtn.addEventListener('click', openClientIdModal);
     closeClientIdModalBtn.addEventListener('click', closeClientIdModal);
     cancelClientIdBtn.addEventListener('click', closeClientIdModal);
     clientIdModalBackdrop.addEventListener('click', (e) => {
       if (e.target === clientIdModalBackdrop) closeClientIdModal();
     });
 
+    const removeClientIdBtn = document.getElementById('removeClientIdBtn');
+    if (removeClientIdBtn) {
+      removeClientIdBtn.addEventListener('click', () => {
+        localStorage.removeItem(CLIENT_ID_STORAGE_KEY);
+        googleClientIdInput.value = '';
+        showToast('OAuth Client ID removed.');
+        closeClientIdModal();
+        initGoogleAuth();
+      });
+    }
+
     clientIdForm.addEventListener('submit', (e) => {
       e.preventDefault();
-      const val = googleClientIdInput.value.trim();
+      let val = googleClientIdInput.value.trim().replace(/^["']|["']$/g, '').trim();
       if (val) {
         localStorage.setItem(CLIENT_ID_STORAGE_KEY, val);
         showToast('OAuth Client ID saved.');
