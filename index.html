@@ -1,0 +1,2835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TreasTrack</title>
+  <!-- PDF-Lib for editing and filling PDF forms -->
+  <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <!-- PDF.js for reading text & coordinates from uploaded PDFs -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+  <!-- Google Identity Services (GIS) for Sign-In with Google -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --surface: #ffffff;
+      --surface-light: #f7f7f7;
+      --text-main: #111111;
+      --text-muted: #666666;
+      --border-color: #d8d8d8;
+      --border-focus: #111111;
+      --header-border: #111111;
+      --btn-primary-bg: #111111;
+      --btn-primary-text: #ffffff;
+      --btn-primary-hover: #333333;
+      --btn-secondary-bg: #ffffff;
+      --btn-secondary-text: #111111;
+      --btn-secondary-border: #d8d8d8;
+      --btn-secondary-hover-border: #111111;
+      --btn-secondary-hover-bg: #f4f4f4;
+      --input-bg: #ffffff;
+      --input-border: #d8d8d8;
+      --input-focus: #111111;
+      --input-placeholder: #888888;
+      --checkbox-border: #111111;
+      --checkbox-checked: #111111;
+      --modal-overlay: rgba(0, 0, 0, 0.45);
+      --modal-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+      --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      --danger-text: #c92a2a;
+      --danger-bg: #fff5f5;
+      --danger-border: #ffa8a8;
+      --color-scheme: light;
+    }
+
+    [data-theme="dark"] {
+      --bg: #0c0e12;
+      --surface: #14171d;
+      --surface-light: #1c2028;
+      --text-main: #f3f4f6;
+      --text-muted: #8e95a5;
+      --border-color: #262a34;
+      --border-focus: #9da4b4;
+      --header-border: #262a34;
+      --btn-primary-bg: #f3f4f6;
+      --btn-primary-text: #0c0e12;
+      --btn-primary-hover: #ffffff;
+      --btn-secondary-bg: #14171d;
+      --btn-secondary-text: #f3f4f6;
+      --btn-secondary-border: #262a34;
+      --btn-secondary-hover-border: #4c5364;
+      --btn-secondary-hover-bg: #1c2028;
+      --input-bg: #0f1116;
+      --input-border: #262a34;
+      --input-focus: #9da4b4;
+      --input-placeholder: #575e6d;
+      --checkbox-border: #3b4252;
+      --checkbox-checked: #f3f4f6;
+      --modal-overlay: rgba(0, 0, 0, 0.72);
+      --modal-shadow: 0 20px 45px rgba(0, 0, 0, 0.7);
+      --card-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+      --danger-text: #ff6b6b;
+      --danger-bg: rgba(255, 107, 107, 0.12);
+      --danger-border: rgba(255, 107, 107, 0.42);
+      --color-scheme: dark;
+    }
+
+    html {
+      color-scheme: var(--color-scheme);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+      transition: background-color 0.18s ease, color 0.18s ease;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 760px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid var(--header-border);
+      padding-bottom: 16px;
+      margin-bottom: 28px;
+      transition: border-color 0.18s ease;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    button {
+      cursor: pointer;
+      font-size: 0.88rem;
+      font-weight: 500;
+      padding: 8px 16px;
+      border-radius: 0;
+      transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background-color: var(--btn-primary-bg);
+      color: var(--btn-primary-text);
+      border: 1px solid var(--btn-primary-bg);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background-color: var(--btn-primary-hover);
+      border-color: var(--btn-primary-hover);
+    }
+
+    .btn-secondary {
+      background-color: var(--btn-secondary-bg);
+      color: var(--btn-secondary-text);
+      border: 1px solid var(--btn-secondary-border);
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      border-color: var(--btn-secondary-hover-border);
+      background-color: var(--btn-secondary-hover-bg);
+    }
+
+    .btn-sm {
+      padding: 5px 10px;
+      font-size: 0.8rem;
+    }
+
+    .theme-toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+      font-size: 0.85rem;
+      user-select: none;
+    }
+
+    .theme-icon {
+      font-size: 0.95rem;
+      line-height: 1;
+    }
+
+    /* PDF Upload Panel */
+    .pdf-section {
+      margin-bottom: 32px;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 12px;
+    }
+
+    .section-header h2 {
+      font-size: 1.05rem;
+      font-weight: 600;
+    }
+
+    .pdf-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .pdf-card {
+      border: 1px solid var(--border-color);
+      background-color: var(--surface);
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      box-shadow: var(--card-shadow);
+    }
+
+    .pdf-card-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .pdf-card-status {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      word-break: break-all;
+    }
+
+    .pdf-card-status.loaded {
+      color: var(--text-main);
+    }
+
+    .pdf-card-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .file-input-hidden {
+      display: none;
+    }
+
+    /* Event List / Empty State */
+    .events-section h2 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .empty-state {
+      border: 1px dashed var(--border-color);
+      padding: 48px 24px;
+      text-align: center;
+      color: var(--text-muted);
+      background-color: var(--surface);
+      font-size: 0.95rem;
+      transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+    }
+
+    .events-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .event-card {
+      border: 1px solid var(--border-color);
+      padding: 16px;
+      background-color: var(--surface);
+      box-shadow: var(--card-shadow);
+      transition: background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .event-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 6px;
+      gap: 12px;
+    }
+
+    .event-title-group {
+      display: flex;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .event-title {
+      font-weight: 600;
+      font-size: 1.05rem;
+    }
+
+    .event-client-badge {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      border: 1px solid var(--border-color);
+      background-color: var(--surface-light);
+      padding: 1px 7px;
+    }
+
+    .event-client-badge.unlisted {
+      color: var(--danger-text);
+      border-color: var(--danger-border);
+      background-color: var(--danger-bg);
+      font-weight: 500;
+    }
+
+    .event-charge {
+      font-weight: 600;
+      font-size: 1rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .event-card-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .btn-edit,
+    .btn-delete {
+      background: none;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      cursor: pointer;
+      padding: 2px 6px;
+      transition: color 0.15s ease, border-color 0.15s ease;
+    }
+
+    .btn-edit:hover,
+    .btn-delete:hover {
+      border-color: var(--border-focus);
+      color: var(--text-main);
+    }
+
+    .event-dates {
+      font-size: 0.84rem;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .card-footer-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .card-checkbox-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: center;
+    }
+
+    /* Modal / Overlay */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background-color: var(--modal-overlay);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 100;
+      transition: background-color 0.18s ease;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal-dialog {
+      background-color: var(--surface);
+      border: 1px solid var(--border-color);
+      width: 100%;
+      max-width: 500px;
+      max-height: 92vh;
+      overflow-y: auto;
+      box-shadow: var(--modal-shadow);
+      transition: background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .modal-header h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .btn-close {
+      background: none;
+      border: none;
+      font-size: 1.4rem;
+      line-height: 1;
+      padding: 0 4px;
+      color: var(--text-muted);
+    }
+
+    .btn-close:hover {
+      color: var(--text-main);
+    }
+
+    .modal-body {
+      padding: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 500;
+      margin-bottom: 6px;
+    }
+
+    .field-hint {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-top: 5px;
+      min-height: 1.1em;
+    }
+
+    .field-hint.unlisted {
+      color: var(--danger-text);
+      font-weight: 500;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    input[type="date"],
+    select {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid var(--input-border);
+      background-color: var(--input-bg);
+      color: var(--text-main);
+      font-size: 0.9rem;
+      border-radius: 0;
+      outline: none;
+      transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+    }
+
+    input[type="text"]::placeholder,
+    input[type="number"]::placeholder {
+      color: var(--input-placeholder);
+    }
+
+    input[type="text"]:focus,
+    input[type="number"]:focus,
+    input[type="date"]:focus,
+    select:focus {
+      border-color: var(--input-focus);
+    }
+
+    .date-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .checkbox-group {
+      margin-top: 18px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .checkbox-Row-With-Action {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.88rem;
+      font-weight: normal;
+      cursor: pointer;
+      user-select: none;
+      margin-bottom: 0;
+      color: var(--text-main);
+    }
+
+    input[type="checkbox"] {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border: 1px solid var(--checkbox-border);
+      background-color: var(--input-bg);
+      display: grid;
+      place-content: center;
+      cursor: pointer;
+      margin: 0;
+      border-radius: 0;
+      transition: border-color 0.15s ease, background-color 0.15s ease;
+      flex-shrink: 0;
+    }
+
+    input[type="checkbox"]:hover {
+      border-color: var(--border-focus);
+    }
+
+    input[type="checkbox"]::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      background-color: var(--checkbox-checked);
+      transform: scale(0);
+      transition: transform 0.1s ease-in-out;
+    }
+
+    input[type="checkbox"]:checked {
+      border-color: var(--checkbox-checked);
+    }
+
+    input[type="checkbox"]:checked::before {
+      transform: scale(1);
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-top: 24px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .modal-actions-right {
+      display: flex;
+      gap: 10px;
+    }
+
+    /* Toast notification */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background-color: var(--surface);
+      color: var(--text-main);
+      border: 1px solid var(--border-focus);
+      padding: 12px 18px;
+      font-size: 0.86rem;
+      box-shadow: var(--modal-shadow);
+      z-index: 200;
+      display: none;
+      max-width: 380px;
+    }
+
+    .toast.show {
+      display: block;
+    }
+
+    /* Mapping Modal Table */
+    .mapping-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 10px;
+      font-size: 0.82rem;
+    }
+
+    /* Google Sign-In & Gatekeeper Overlay */
+    .login-overlay {
+      position: fixed;
+      inset: 0;
+      background-color: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 1000;
+    }
+
+    .login-card {
+      background-color: var(--surface);
+      border: 1px solid var(--border-color);
+      width: 100%;
+      max-width: 440px;
+      padding: 36px 30px;
+      box-shadow: var(--modal-shadow);
+      text-align: center;
+    }
+
+    .login-badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-weight: 600;
+      padding: 3px 8px;
+      border: 1px solid var(--border-color);
+      background-color: var(--surface-light);
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .login-title {
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
+    }
+
+    .login-subtitle {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+
+    .login-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-bottom: 18px;
+      text-align: left;
+    }
+
+    .login-lock-banner {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.82rem;
+      padding: 10px 12px;
+      background-color: var(--surface-light);
+      border: 1px solid var(--border-color);
+      margin-bottom: 20px;
+      text-align: left;
+    }
+
+    .g-signin-container {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 16px;
+      min-height: 44px;
+    }
+
+    .auth-error-message {
+      padding: 10px 12px;
+      font-size: 0.82rem;
+      background-color: var(--danger-bg);
+      color: var(--danger-text);
+      border: 1px solid var(--danger-border);
+      text-align: left;
+      line-height: 1.4;
+      margin-top: 12px;
+    }
+
+    .btn-link {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.78rem;
+      cursor: pointer;
+      text-decoration: underline;
+      padding: 4px;
+    }
+
+    .btn-link:hover {
+      color: var(--text-main);
+    }
+
+    /* Authenticated User Pill in Header */
+    .user-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 10px;
+      font-size: 0.8rem;
+      border: 1px solid var(--border-color);
+      background-color: var(--surface-light);
+      color: var(--text-main);
+    }
+
+    .btn-signout {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0 2px;
+    }
+
+    .btn-signout:hover {
+      color: var(--danger-text);
+    }
+
+    /* Academic Year Rollover Banner */
+    .rollover-banner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background-color: var(--surface-light);
+      border: 1px solid var(--border-color);
+      margin-bottom: 24px;
+      font-size: 0.86rem;
+      line-height: 1.4;
+    }
+
+    .handover-info-card,
+    .handover-stats-card {
+      padding: 12px 14px;
+      background-color: var(--surface-light);
+      border: 1px solid var(--border-color);
+      margin-bottom: 12px;
+      font-size: 0.86rem;
+    }
+
+    .handover-year-title {
+      font-weight: 600;
+      font-size: 1rem;
+    }
+
+    .archived-years-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 8px;
+      max-height: 160px;
+      overflow-y: auto;
+    }
+
+    .archive-item-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 10px;
+      border: 1px solid var(--border-color);
+      background-color: var(--surface);
+      font-size: 0.82rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Google Sign-In & Gatekeeper Overlay -->
+  <div id="loginOverlay" class="login-overlay">
+    <div class="login-card">
+      <span class="login-badge">Society Access Only</span>
+      <h1 class="login-title">TreasTrack</h1>
+      <p class="login-subtitle">BTS Bath Society Treasurer Management</p>
+
+      <div class="login-lock-banner">
+        <span style="font-size: 1.25rem;">🔒</span>
+        <div>
+          <strong>treas@bts-crew.com</strong>
+          <div style="color: var(--text-muted); font-size: 0.78rem;">Site access is restricted strictly to the society treasurer account.</div>
+        </div>
+      </div>
+
+      <!-- Google Identity Services Container -->
+      <div id="gSignInBtn" class="g-signin-container"></div>
+
+      <!-- Error / Access Denied Notification -->
+      <div id="loginErrorMsg" class="auth-error-message" style="display: none;"></div>
+
+      <div style="margin-top: 24px; padding-top: 14px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem; color: var(--text-muted);">
+        <button type="button" id="configClientIdBtn" class="btn-link" title="Configure Google Cloud OAuth Client ID">OAuth Client ID</button>
+        <button type="button" id="devSignInBtn" class="btn-link" title="Sign in immediately for local testing / offline">Dev / Local Sign In</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="appContainer" style="display: none;">
+    <div class="container">
+      <header>
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <h1 style="margin: 0;">TreasTrack</h1>
+          <button type="button" id="academicYearBtn" class="btn-secondary btn-sm" title="View financial year rollover &amp; archives" style="font-size: 0.78rem; padding: 4px 8px; border-radius: 0;">
+            <span id="currentYearBadgeText">2026–2027</span> ▾
+          </button>
+        </div>
+        <div class="header-actions">
+          <input type="file" id="templateFileInput" class="file-input-hidden" accept=".pdf,application/pdf">
+          <button type="button" id="uploadTemplateBtn" class="btn-secondary theme-toggle-btn" title="No Finance Template PDF uploaded">
+            <span id="uploadTemplateText">Upload Template</span>
+          </button>
+          <button type="button" id="googleSetupBtn" class="btn-secondary theme-toggle-btn" title="Configure Google Drive &amp; Gmail automation">
+            <span id="googleSetupText">Google Setup</span>
+          </button>
+          <button id="themeToggleBtn" class="btn-secondary theme-toggle-btn" type="button" aria-label="Toggle theme">
+            <span id="themeToggleIcon" class="theme-icon" aria-hidden="true">☾</span>
+            <span id="themeToggleText">Dark</span>
+          </button>
+          <button id="openModalBtn" class="btn-primary">Add Event</button>
+          <div id="userPillContainer" class="user-pill" title="Signed in as BTS Treasurer">
+            <span id="userPillEmail">treas@bts-crew.com</span>
+            <button type="button" id="signOutBtn" class="btn-signout" title="Sign out">&times;</button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Academic Year Rollover Banner -->
+      <div id="rolloverBanner" class="rollover-banner" style="display: none;">
+        <div>
+          <strong>Financial Year Rollover (1st August):</strong>
+          <span id="rolloverBannerMsg">Welcome to the new academic year! Previous events have been safely archived.</span>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" id="viewArchiveBannerBtn" class="btn-secondary btn-sm">View Archives</button>
+          <button type="button" id="dismissRolloverBannerBtn" class="btn-secondary btn-sm">&times;</button>
+        </div>
+      </div>
+
+      <section class="events-section">
+        <h2>Events</h2>
+        <div id="eventsList" class="events-list">
+          <div id="emptyState" class="empty-state">No events recorded yet. Click "Add Event" to create one.</div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- Modal / Menu for adding event -->
+  <div id="modalBackdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h2 id="modalTitle">Add Event</h2>
+        <button id="closeModalBtn" class="btn-close" type="button" aria-label="Close menu">&times;</button>
+      </div>
+
+      <form id="eventForm" class="modal-body">
+        <div class="form-group">
+          <label for="eventName">Event Name</label>
+          <input type="text" id="eventName" required placeholder="e.g. Annual Gala">
+        </div>
+
+        <div class="form-group">
+          <label for="clientName">Client Name</label>
+          <input type="text" id="clientName" list="societiesDatalist" required placeholder="e.g. BUSMS or Bath University Student Musicals">
+          <datalist id="societiesDatalist"></datalist>
+          <div id="clientCodeHint" class="field-hint"></div>
+        </div>
+
+        <div class="form-group">
+          <label for="eventCharge">Event Charge (£)</label>
+          <input type="number" id="eventCharge" step="0.01" min="0" required placeholder="0.00">
+        </div>
+
+        <div class="date-row">
+          <div class="form-group">
+            <label for="startDate">Start Date</label>
+            <input type="date" id="startDate" required>
+          </div>
+          <div class="form-group">
+            <label for="endDate">End Date</label>
+            <input type="date" id="endDate" required>
+          </div>
+        </div>
+
+        <div class="checkbox-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="financeEntryCreated">
+            Finance entry created
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="invoiceDrafted">
+            Invoice drafted
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" id="invoiceSent">
+            Invoice sent
+          </label>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" id="cancelBtn" class="btn-secondary">Cancel</button>
+          <div class="modal-actions-right">
+            <button type="submit" id="submitEventBtn" class="btn-primary">Save Event</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Google Drive & Gmail Automation Setup Modal -->
+  <div id="googleSetupModalBackdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="googleSetupModalTitle">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h2 id="googleSetupModalTitle">Google Drive &amp; Gmail Setup</h2>
+        <button id="closeGoogleSetupBtn" class="btn-close" type="button" aria-label="Close">&times;</button>
+      </div>
+      <form id="googleSetupForm" class="modal-body">
+        <div class="form-group">
+          <label for="appsScriptUrlInput">Apps Script Web App URL</label>
+          <input type="text" id="appsScriptUrlInput" placeholder="https://script.google.com/macros/s/.../exec">
+          <div class="field-hint">Must end in <strong>/exec</strong>, with "Execute as: Me" and "Who has access: Anyone".</div>
+        </div>
+
+        <div class="form-group">
+          <label for="parentDriveFolderInput">Parent Google Drive Folder Link or ID (Optional)</label>
+          <input type="text" id="parentDriveFolderInput" placeholder="https://drive.google.com/drive/folders/... or Folder ID">
+          <div class="field-hint">Event folders ("{Event Name}") will be created inside this Drive folder, with BF_{Event Name}.pdf saved inside.</div>
+        </div>
+
+        <div class="form-group" style="margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border-color);">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <span style="font-size: 0.82rem; color: var(--text-muted);">Apps Script Setup &amp; Verification:</span>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <button type="button" id="copyAppsScriptBtn" class="btn-secondary btn-sm">Copy Apps Script Code</button>
+              <button type="button" id="testAppsScriptBtn" class="btn-secondary btn-sm">Test Connection</button>
+            </div>
+          </div>
+          <div id="googleTestStatus" class="field-hint" style="margin-top: 8px; white-space: pre-line;"></div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" id="cancelGoogleSetupBtn" class="btn-secondary">Cancel</button>
+          <div class="modal-actions-right">
+            <button type="submit" class="btn-primary">Save Settings</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Treasurer Handover & Academic Year Archives Modal -->
+  <div id="handoverModalBackdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="handoverModalTitle">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h2 id="handoverModalTitle">Treasurer Handover &amp; Archives</h2>
+        <button id="closeHandoverModalBtn" class="btn-close" type="button" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="handover-info-card">
+          <div class="handover-year-title">Current Financial Year: <span id="modalCurrentYearDisplay">2026–2027</span></div>
+          <div style="font-size: 0.82rem; color: var(--text-muted); margin-top: 4px; line-height: 1.4;">
+            Financial years run from <strong>1st August</strong> to <strong>31st July</strong>. TreasTrack automatically archives events from the concluding year on 1st August and resets the workspace for the incoming treasurer.
+          </div>
+        </div>
+
+        <div class="handover-stats-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span style="font-weight: 600;">Active Events:</span>
+            <span id="modalActiveEventsCount" style="font-weight: bold;">0</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-weight: 600;">Total Charged:</span>
+            <span id="modalActiveTotalCharge" style="font-weight: bold;">£0.00</span>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;">
+          <button type="button" id="exportYearBackupBtn" class="btn-secondary" style="flex: 1; min-width: 160px;">📥 Download Year Backup</button>
+          <button type="button" id="manualRolloverBtn" class="btn-secondary" style="flex: 1; min-width: 160px;" title="Archive active events and start next year">📦 Trigger Handover Now</button>
+        </div>
+
+        <div>
+          <div style="font-weight: 600; font-size: 0.88rem; margin-bottom: 6px;">Archived Financial Years:</div>
+          <div id="archivedYearsList" class="archived-years-list">
+            <div id="noArchivesMsg" style="font-size: 0.82rem; color: var(--text-muted); padding: 8px 0;">No archived years yet. Previous years will appear here after 1st August rollover.</div>
+          </div>
+        </div>
+
+        <div class="modal-actions" style="margin-top: 20px;">
+          <button type="button" id="closeHandoverBottomBtn" class="btn-secondary">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Google OAuth Client ID Modal -->
+  <div id="clientIdModalBackdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="clientIdModalTitle">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h2 id="clientIdModalTitle">Google OAuth Client ID</h2>
+        <button id="closeClientIdModalBtn" class="btn-close" type="button" aria-label="Close">&times;</button>
+      </div>
+      <form id="clientIdForm" class="modal-body">
+        <div class="form-group">
+          <label for="googleClientIdInput">Google Cloud OAuth 2.0 Web Client ID</label>
+          <input type="text" id="googleClientIdInput" placeholder="xxxx.apps.googleusercontent.com">
+          <div class="field-hint" style="margin-top: 6px; line-height: 1.4;">
+            Created in Google Cloud Console under <strong>APIs &amp; Services &gt; Credentials &gt; OAuth client ID (Web application)</strong>.<br>
+            Ensure your hosted domain (e.g. <code>https://&lt;username&gt;.github.io</code> or <code>http://localhost</code>) is listed under <strong>Authorized JavaScript origins</strong>.
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" id="cancelClientIdBtn" class="btn-secondary">Cancel</button>
+          <div class="modal-actions-right">
+            <button type="submit" class="btn-primary">Save Client ID</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    // Configure PDF.js worker
+    if (window.pdfjsLib && !window.pdfjsLib.GlobalWorkerOptions.workerSrc) {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+
+    // Toast notification helper
+    const toastEl = document.getElementById('toast');
+    let toastTimer = null;
+    function showToast(msg, duration = 4000) {
+      toastEl.textContent = msg;
+      toastEl.classList.add('show');
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toastEl.classList.remove('show');
+      }, duration);
+    }
+
+    // ==========================================
+    // 1. Theme Setup & Persistence
+    // ==========================================
+    const themeToggleBtn = document.getElementById('themeToggleBtn');
+    const themeToggleIcon = document.getElementById('themeToggleIcon');
+    const themeToggleText = document.getElementById('themeToggleText');
+
+    function applyTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      try {
+        localStorage.setItem('treastrack_theme', theme);
+      } catch (err) {}
+
+      if (theme === 'dark') {
+        themeToggleIcon.textContent = '☼';
+        themeToggleText.textContent = 'Light';
+        themeToggleBtn.setAttribute('aria-label', 'Switch to light mode');
+      } else {
+        themeToggleIcon.textContent = '☾';
+        themeToggleText.textContent = 'Dark';
+        themeToggleBtn.setAttribute('aria-label', 'Switch to dark mode');
+      }
+    }
+
+    let savedTheme = 'light';
+    try {
+      savedTheme = localStorage.getItem('treastrack_theme');
+    } catch (err) {}
+
+    if (!savedTheme) {
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        savedTheme = 'dark';
+      } else {
+        savedTheme = 'light';
+      }
+    }
+
+    applyTheme(savedTheme);
+
+    themeToggleBtn.addEventListener('click', () => {
+      const activeTheme = document.documentElement.getAttribute('data-theme') || 'light';
+      applyTheme(activeTheme === 'dark' ? 'light' : 'dark');
+    });
+
+    // ==========================================
+    // 2. IndexedDB Storage for Uploaded PDFs
+    // ==========================================
+    const DB_NAME = 'treastrack_pdf_db';
+    const STORE_NAME = 'pdfs';
+
+    let templatePdfBuffer = null;
+    let templatePdfName = '';
+    let templateDetectedFields = []; // AcroForm field names in reading order
+
+    function openPdfDb() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, 1);
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains(STORE_NAME)) {
+            db.createObjectStore(STORE_NAME);
+          }
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function savePdfToDb(key, name, arrayBuffer) {
+      try {
+        const db = await openPdfDb();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE_NAME, 'readwrite');
+          tx.objectStore(STORE_NAME).put({ name, data: arrayBuffer }, key);
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        });
+      } catch (err) {
+        console.warn('IndexedDB save failed:', err);
+      }
+    }
+
+    async function loadPdfFromDb(key) {
+      try {
+        const db = await openPdfDb();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE_NAME, 'readonly');
+          const req = tx.objectStore(STORE_NAME).get(key);
+          req.onsuccess = () => resolve(req.result || null);
+          req.onerror = () => reject(req.error);
+        });
+      } catch (err) {
+        return null;
+      }
+    }
+
+    // ==========================================
+    // 3. Built-in Societies & Department Codes
+    //    (Embedded from societies.csv)
+    // ==========================================
+    const SOCIETIES_DATA = [
+      ["Asian Music Society", "ASM"],
+      ["Bath Altsoc", "ALT"],
+      ["Backstage Technical Services (BTS)", "BTS/BAC"],
+      ["Bath Ceramics Society", "CER"],
+      ["Bath Crochet and Knit Society", "CRO"],
+      ["Bath Indian Dance Society", "BID"],
+      ["Bath University Pole and Aerial (BUPA)", "POL"],
+      ["Bath University Student Musicals (BUSMS)", "SMS"],
+      ["Bath University Student Theatre (BUST)", "STS"],
+      ["BURBAN Dance Society", "BUR"],
+      ["Choral and Orchestral Society (ChaOS)", "CHA"],
+      ["Dance Society", "DAN"],
+      ["Fine Art Society", "FIN"],
+      ["LitSoc", "LIT"],
+      ["MusicSoc", "MUS"],
+      ["PhotoSoc", "PHO"],
+      ["Salsa Soc", "SAL"],
+      ["Amnesty", "AMN"],
+      ["Bath University Conservative Association (BUCA)", "6CO"],
+      ["Bath University Debating Society (BUDS)", "DEB"],
+      ["Bath University Green Party(BUGP)", "6GR"],
+      ["Bath University Labour Society", "LAB"],
+      ["Bath University Left Union (BULU)", "6LU"],
+      ["Bath Marxist Society", "MRX"],
+      ["Bath University Model United Nations Society (BUMUN)", "MUN"],
+      ["Bath University Philosophy Society (BUPS)", "BUP"],
+      ["Engineers Without Borders (EWB)", "IWB"],
+      ["People and Planet", "PEO"],
+      ["TEDx Bath Club", "TED"],
+      ["Anime and Manga Society", "SCI"],
+      ["Artificial Intelligence Society (AIS)", "AIS"],
+      ["Bath Duck Society", "DUC"],
+      ["Bath Makerspace Society", "MAK"],
+      ["Bath Petrolhead Society", "PET"],
+      ["Bath Postgraduate Investment Fund Society (BPIFS)", "PGI"],
+      ["Bath Rail and Transport Society (BRaTS)", "BRT"],
+      ["Bath Space Society (SpaceSoc)", "SPA"],
+      ["Bath University Film Society", "FLM"],
+      ["Bath University Guides and Scouts (BUGS)", "BUG"],
+      ["Bath University LEGO Society", "LEG"],
+      ["Bath Video Game Society (BVGS)", "BVG"],
+      ["Chess Society", "CSO"],
+      ["Cyber Security Society", "CYB"],
+      ["Darts Society", "DAR"],
+      ["Food Soc", "FOO"],
+      ["Girls Who Gym Society", "GWG"],
+      ["Girlypops", "GLP"],
+      ["Harry Potter Society", "HAR"],
+      ["Health and Wellness", "HWB"],
+      ["History and Archives Society (HistArc)", "HIS"],
+      ["Karaoke Society", "BKS"],
+      ["Mahjong Society (MJSoc)", "MAH"],
+      ["Meditation Society", "MED"],
+      ["PGT Autoverse Society", "AUT"],
+      ["Poker Society", "POK"],
+      ["Reenactment Society", "RET"],
+      ["Skateboarding", "SKA"],
+      ["SocieTEA", "TEA"],
+      ["Sustainable Fashion Society", "SUF"],
+      ["Tabletop Gaming Society", "TGS"],
+      ["Taylor Swift Society", "TAY"],
+      ["The Good Day Brunch Club", "GDB"],
+      ["University of Bath Kpop Society", "KPO"],
+      ["University of Bath Law Society", "LAW"],
+      ["University of Bath Medical Society", "MCL"],
+      ["Vegetarian Society", "VEG"],
+      ["Wine Society", "WIN"],
+      ["Women in Business", "WIB"],
+      ["Women in Finance (WIF)", "WIF"],
+      ["Women in Science (WIS)", "WIS"],
+      ["Architecture & Civil Engineering (ACE)", "ACE"],
+      ["Bath Association of Psychology Students (BAPS)", "BAP"],
+      ["Bath Computer Science Society (BCSS)", "BCS"],
+      ["Bath Consulting Society (BCS)", "BCO"],
+      ["Bath Economics SocieTy (BEST)", "ECO"],
+      ["Bath Entrepreneurs", "ENT"],
+      ["Bath Finance Society (BFS)", "BFS"],
+      ["Bath Marketing, Communications and PR Society", "MAR"],
+      ["Bath Real Estate and Construction Society (BRECS)", "REC"],
+      ["Bath Sport Management Society", "BSM"],
+      ["Bath University Biosciences Society (BUBS)", "BUB"],
+      ["Bath University Maths Society (BUMS)", "BUM"],
+      ["Bath University Politics Society", "BPS"],
+      ["Chemical Engineering Student Association (CESA)", "CES"],
+      ["Chemistry Society (ChemSoc)", "CHM"],
+      ["Minority Ethnic Mechanical Engineers Society (M.E.M.E.S)", "MEM"],
+      ["Pharmacy and Pharamacology Society (PaPS)", "PAP"],
+      ["PhySoc", "PHY"],
+      ["Social and Policy Sciences Society", "SPS"],
+      ["Young Professionals", "YPR"],
+      ["ABACUS - Association of British and Chinese University Students", "BBC"],
+      ["African & Caribbean Society (ACS)", "ACS"],
+      ["Ahmadiyya Muslim Students' Association Bath (AMSA)", "AHM"],
+      ["Bangla Society (BanglaSoc)", "BAN"],
+      ["Bath Area Malaysian Students' Association (BAMSA)", "BAM"],
+      ["Bath Exchange Network (BEN)", "2BE"],
+      ["Bath Hindu Society (HinduSoc)", "HIN"],
+      ["Bath Indian Society (BIS)", "ASI"],
+      ["Bath Irish and Northern Irish Society (BINIS)", "INI"],
+      ["Bath Punjabi Society", "PUN"],
+      ["Bath Sikh Society", "BSS"],
+      ["Bath Taiwanese Society", "BTW"],
+      ["Bath Tamil Society", "TAM"],
+      ["Bath University Islamic Society (BUIS)", "ISL"],
+      ["Bath University Northern Society", "NOR"],
+      ["Bath University Polish Society", "PLS"],
+      ["Bulgarian Society", "BUL"],
+      ["Caledonian Society", "CAL"],
+      ["Catholic Society (CathSoc)", "CAT"],
+      ["Chinese Student Scholars Association in Bath (CSSA)", "CSS"],
+      ["Cypriot Society", "CYP"],
+      ["Czech and Slovak Society", "CZS"],
+      ["European Society (EuroSoc)", "EUR"],
+      ["French Society", "FRE"],
+      ["German Society", "GER"],
+      ["Hellenic Society", "HEL"],
+      ["Hong Kong Public Affairs & Social Services Society (HKPASS)", "HKP"],
+      ["Indonesian Society", "IND"],
+      ["Italian Society", "ITA"],
+      ["Japanese Society", "JAP"],
+      ["Jewish Society", "JEW"],
+      ["Kazakh Society", "KAZ"],
+      ["Kharis on Campus", "KHC"],
+      ["Latin American Society", "LAM"],
+      ["Lebanese Society", "LEB"],
+      ["Malayalee Society", "MLY"],
+      ["Pakistani Society", "PAK"],
+      ["Persian Society", "PER"],
+      ["Portuguese Society", "POR"],
+      ["Romanian Society (RoSoc)", "ROM"],
+      ["RPF Bath (Redeemed Pillar of Fire)", "RPF"],
+      ["Russian Speaking Society", "RSS"],
+      ["Scandinavian Society", "SCA"],
+      ["Spanish Society", "SPN"],
+      ["Sri Lankan Society", "SRI"],
+      ["ThaiSoc", "THA"],
+      ["Turkish Society", "TUR"],
+      ["Ukrainian Society", "UKR"],
+      ["University of Bath Arab Society", "ARA"],
+      ["University of Bath Filipino Society (Filipino Soc)", "FIL"],
+      ["University of Bath Korean Society", "KOR"],
+      ["Welsh Society", "WEL"]
+    ];
+
+    function stripSocietyBoilerplate(str) {
+      return str
+        .toUpperCase()
+        .replace(/\(.*?\)/g, ' ')
+        .replace(/([A-Z]{3,})SOC\b/g, '$1')
+        .replace(/\b(UNIVERSITY OF BATH|BATH UNIVERSITY|BATH UNI|BATH|THE|SOCIETY|SOC|ASSOCIATION|CLUB|STUDENTS|STUDENT)\b/g, ' ')
+        .replace(/[^A-Z0-9\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    const INDEXED_SOCIETIES = SOCIETIES_DATA.map(([name, code]) => {
+      const upperName = name.toUpperCase();
+      const compactName = upperName.replace(/[^A-Z0-9]/g, '');
+      const upperCode = code.toUpperCase().trim();
+
+      // Extract parenthetical aliases e.g. "(BUSMS)", "(M.E.M.E.S)" and dash prefix e.g. "ABACUS - ..."
+      const aliases = [];
+      const parenMatches = name.matchAll(/\(([^)]+)\)/g);
+      for (const match of parenMatches) {
+        const rawAlias = match[1].trim().toUpperCase();
+        if (rawAlias) {
+          aliases.push(rawAlias);
+          const compactAlias = rawAlias.replace(/[^A-Z0-9]/g, '');
+          if (compactAlias && compactAlias !== rawAlias) {
+            aliases.push(compactAlias);
+          }
+        }
+      }
+      if (name.includes(' - ')) {
+        const dashPrefix = name.split(' - ')[0].trim().toUpperCase();
+        if (dashPrefix) {
+          aliases.push(dashPrefix);
+          const compactPrefix = dashPrefix.replace(/[^A-Z0-9]/g, '');
+          if (compactPrefix && compactPrefix !== dashPrefix) {
+            aliases.push(compactPrefix);
+          }
+        }
+      }
+
+      // Extract name without parenthetical suffix
+      const baseName = upperName.replace(/\(.*?\)/g, '').replace(/\s+/g, ' ').trim();
+      const compactBaseName = baseName.replace(/[^A-Z0-9]/g, '');
+      const coreName = stripSocietyBoilerplate(name);
+      const codeParts = upperCode.split('/').map((c) => c.trim()).filter(Boolean);
+
+      return {
+        name,
+        code,
+        upperName,
+        compactName,
+        baseName,
+        compactBaseName,
+        coreName,
+        upperCode,
+        codeParts,
+        aliases
+      };
+    });
+
+    // Populate datalist for Client Name autocomplete
+    (function populateSocietiesDatalist() {
+      const datalist = document.getElementById('societiesDatalist');
+      if (!datalist) return;
+      datalist.innerHTML = '';
+      for (const item of INDEXED_SOCIETIES) {
+        const opt = document.createElement('option');
+        opt.value = item.name;
+        opt.textContent = item.code;
+        datalist.appendChild(opt);
+      }
+    })();
+
+    function findSocietyRecordForClient(clientName) {
+      if (!clientName || !clientName.trim()) return null;
+      const rawQuery = clientName.trim();
+      const upperQuery = rawQuery.toUpperCase().replace(/\s+/g, ' ');
+      const compactQuery = upperQuery.replace(/[^A-Z0-9]/g, '');
+      if (!compactQuery) return null;
+
+      // 1. Exact match on full Society Name or base Society Name (without parentheses)
+      for (const item of INDEXED_SOCIETIES) {
+        if (
+          item.upperName === upperQuery ||
+          item.compactName === compactQuery ||
+          item.baseName === upperQuery ||
+          item.compactBaseName === compactQuery
+        ) {
+          return item;
+        }
+      }
+
+      // 2. Exact match on parenthetical alias or dash prefix (e.g. "BUSMS", "BUST", "ChaOS", "M.E.M.E.S", "ABACUS")
+      for (const item of INDEXED_SOCIETIES) {
+        if (item.aliases.includes(upperQuery) || item.aliases.includes(compactQuery)) {
+          return item;
+        }
+      }
+
+      // 3. Exact match on Finance Code itself (e.g. "SMS", "STS", "BTS", "BAC")
+      for (const item of INDEXED_SOCIETIES) {
+        if (item.upperCode === upperQuery || item.codeParts.includes(upperQuery) || item.codeParts.includes(compactQuery)) {
+          return item;
+        }
+      }
+
+      // 4. Exact match on core society name (ignoring "Bath University", "Society", etc.)
+      const queryCore = stripSocietyBoilerplate(rawQuery);
+      if (queryCore) {
+        for (const item of INDEXED_SOCIETIES) {
+          if (item.coreName && item.coreName === queryCore) {
+            return item;
+          }
+        }
+      }
+
+      return null;
+    }
+
+    function findDepartmentCodeForClient(clientName) {
+      const record = findSocietyRecordForClient(clientName);
+      if (record) {
+        return record.code;
+      }
+      return '';
+    }
+
+    // ==========================================
+    // 4. Finance Template PDF Analysis & Filling
+    // ==========================================
+    const BLUE_FORM_SLOTS = [
+      { key: 'debitFrom', label: 'Debit From (Client Name)' },
+      { key: 'debitDept', label: 'Debit Department (3-4 Digit Code)' },
+      { key: 'debitExpense', label: 'Debit Expense Type (52015)' },
+      { key: 'debitEvent', label: 'Debit Event Name' },
+      { key: 'totalTransferred', label: 'Total to be Transferred' },
+      { key: 'reasonForTransfer', label: 'Reason for Transfer' },
+      { key: 'creditTo', label: 'Credit To (Backstage)' },
+      { key: 'creditDept', label: 'Credit Department (BAC)' },
+      { key: 'creditExpense', label: 'Credit Expense Type (72015)' },
+      { key: 'creditEvent', label: 'Credit Event Name' }
+    ];
+
+    let customFieldMapping = {};
+    try {
+      const savedMap = localStorage.getItem('treastrack_field_mapping');
+      if (savedMap) customFieldMapping = JSON.parse(savedMap);
+    } catch (e) {}
+
+    async function inspectTemplatePdf(arrayBuffer) {
+      const pdfDoc = await window.PDFLib.PDFDocument.load(arrayBuffer.slice(0), { ignoreEncryption: true });
+      const form = pdfDoc.getForm();
+      const rawFields = form.getFields();
+
+      // Collect text fields with their spatial coordinates on the page
+      const fieldInfos = [];
+      for (const field of rawFields) {
+        const name = field.getName();
+        const isText = typeof field.setText === 'function';
+        let x = 0;
+        let y = 0;
+        let width = 100;
+        let height = 20;
+        try {
+          const widgets = field.acroField.getWidgets();
+          if (widgets && widgets.length > 0) {
+            const rect = widgets[0].getRectangle();
+            x = rect.x;
+            y = rect.y;
+            width = rect.width;
+            height = rect.height;
+          }
+        } catch (err) {}
+        if (isText) {
+          fieldInfos.push({ name, x, y, width, height, field });
+        }
+      }
+
+      // Sort fields in standard reading order: top-to-bottom (Y descending), left-to-right (X ascending)
+      fieldInfos.sort((a, b) => {
+        if (Math.abs(b.y - a.y) > 10) {
+          return b.y - a.y;
+        }
+        return a.x - b.x;
+      });
+
+      templateDetectedFields = fieldInfos.map((f) => f.name);
+      return { pdfDoc, form, fieldInfos };
+    }
+
+    async function extractPageLabelsAndLayout(arrayBuffer) {
+      const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer.slice(0) }).promise;
+      const page = await pdf.getPage(1);
+      const textContent = await page.getTextContent();
+
+      // Merge text items on same line with small horizontal gap into phrases
+      const rawItems = textContent.items
+        .filter((it) => it.str && it.str.trim())
+        .map((it) => ({
+          str: it.str,
+          x: it.transform[4],
+          y: it.transform[5],
+          width: it.width || it.str.length * 5,
+          height: it.height || 10
+        }));
+
+      const lines = [];
+      for (const item of rawItems) {
+        let line = lines.find((l) => Math.abs(l.y - item.y) < 5);
+        if (!line) {
+          line = { y: item.y, items: [] };
+          lines.push(line);
+        }
+        line.items.push(item);
+      }
+
+      const phrases = [];
+      for (const line of lines) {
+        line.items.sort((a, b) => a.x - b.x);
+        let current = null;
+        for (const it of line.items) {
+          if (!current) {
+            current = { text: it.str, x: it.x, y: it.y, endX: it.x + it.width, height: it.height };
+          } else if (it.x - current.endX < 12) {
+            current.text += (it.x - current.endX > 1.5 ? ' ' : '') + it.str;
+            current.endX = Math.max(current.endX, it.x + it.width);
+          } else {
+            phrases.push(current);
+            current = { text: it.str, x: it.x, y: it.y, endX: it.x + it.width, height: it.height };
+          }
+        }
+        if (current) phrases.push(current);
+      }
+
+      // Sort phrases top-to-bottom, left-to-right
+      phrases.sort((a, b) => (Math.abs(b.y - a.y) > 8 ? b.y - a.y : a.x - b.x));
+      return phrases;
+    }
+
+    async function generateBlueFormPdf(eventObj) {
+      if (!templatePdfBuffer) {
+        showToast('Please upload the Finance Template PDF (Blue Form) first.');
+        return;
+      }
+
+      const eventName = (eventObj.name || '').trim() || 'Untitled Event';
+      const clientName = (eventObj.clientName || '').trim() || 'Unknown Client';
+      const deptCode = findDepartmentCodeForClient(clientName);
+      const chargeNum = parseFloat(eventObj.charge || 0);
+      const chargeFormatted = isNaN(chargeNum)
+        ? '0.00'
+        : chargeNum.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+      const values = {
+        debitFrom: clientName,
+        debitDept: deptCode,
+        debitExpense: '52015',
+        debitEvent: eventName,
+        totalTransferred: '£' + chargeFormatted,
+        totalTransferredPlain: chargeFormatted,
+        reasonForTransfer: `Production Charge for ${eventName}`,
+        creditTo: 'Backstage',
+        creditDept: 'BAC',
+        creditExpense: '72015',
+        creditEvent: eventName
+      };
+
+      try {
+        const { pdfDoc, form, fieldInfos } = await inspectTemplatePdf(templatePdfBuffer);
+        const phrases = await extractPageLabelsAndLayout(templatePdfBuffer);
+
+        // Check if there is a printed '£' right next to Total to be Transferred
+        const hasPrintedPoundSign = phrases.some((p) => /total.*£|£$/i.test(p.text.trim()));
+        const totalValueToUse = hasPrintedPoundSign ? values.totalTransferredPlain : values.totalTransferred;
+
+        const slotValues = {
+          debitFrom: values.debitFrom,
+          debitDept: values.debitDept,
+          debitExpense: values.debitExpense,
+          debitEvent: values.debitEvent,
+          totalTransferred: totalValueToUse,
+          reasonForTransfer: values.reasonForTransfer,
+          creditTo: values.creditTo,
+          creditDept: values.creditDept,
+          creditExpense: values.creditExpense,
+          creditEvent: values.creditEvent
+        };
+
+        if (fieldInfos.length > 0) {
+          // Map each of the 10 slots to a field in fieldInfos
+          const assignedSlots = {}; // slotKey -> fieldInfo
+          const usedFieldNames = new Set();
+
+          // 1. Apply any explicit user custom mappings first
+          for (const slot of BLUE_FORM_SLOTS) {
+            const mappedName = customFieldMapping[slot.key];
+            if (mappedName) {
+              const found = fieldInfos.find((f) => f.name === mappedName);
+              if (found) {
+                assignedSlots[slot.key] = found;
+                usedFieldNames.add(found.name);
+              }
+            }
+          }
+
+          // 2. Match by AcroForm field names if descriptive
+          function matchByNamePattern(slotKey, regexList, preferLast = false) {
+            if (assignedSlots[slotKey]) return;
+            const candidates = fieldInfos.filter(
+              (f) => !usedFieldNames.has(f.name) && regexList.some((rx) => rx.test(f.name))
+            );
+            if (candidates.length > 0) {
+              const chosen = preferLast ? candidates[candidates.length - 1] : candidates[0];
+              assignedSlots[slotKey] = chosen;
+              usedFieldNames.add(chosen.name);
+            }
+          }
+
+          matchByNamePattern('debitFrom', [/debit\s*from/i, /from\s*account/i, /debit.*client/i, /debit.*soc/i]);
+          matchByNamePattern('creditTo', [/credit\s*to/i, /to\s*account/i, /credit.*client/i, /credit.*soc/i]);
+          matchByNamePattern('totalTransferred', [/total/i, /amount/i, /transfer.*val/i, /sum/i]);
+          matchByNamePattern('reasonForTransfer', [/reason/i, /description/i, /details/i, /purpose/i]);
+
+          // Repeated fields by name (first in reading order = Debit, second = Credit)
+          matchByNamePattern('debitDept', [/debit.*dept/i, /debit.*department/i, /^dept/i, /department/i], false);
+          matchByNamePattern('creditDept', [/credit.*dept/i, /credit.*department/i, /^dept/i, /department/i], true);
+
+          matchByNamePattern('debitExpense', [/debit.*expense/i, /expense.*type/i, /nominal/i, /account.*code/i], false);
+          matchByNamePattern('creditExpense', [/credit.*expense/i, /expense.*type/i, /nominal/i, /account.*code/i], true);
+
+          matchByNamePattern('debitEvent', [/debit.*event/i, /^event/i, /event.*code/i, /event.*name/i], false);
+          matchByNamePattern('creditEvent', [/credit.*event/i, /^event/i, /event.*code/i, /event.*name/i], true);
+
+          // 3. Spatial Label-to-Widget Matching using PDF.js phrase coordinates
+          // Find anchor positions for Debit section vs Credit section
+          const debitAnchor = phrases.find((p) => /debit\s*from/i.test(p.text));
+          const creditAnchor = phrases.find((p) => /credit\s*to/i.test(p.text));
+
+          function findClosestWidgetForPhrase(phrase) {
+            if (!phrase) return null;
+            let bestField = null;
+            let bestScore = Infinity;
+
+            for (const f of fieldInfos) {
+              if (usedFieldNames.has(f.name)) continue;
+              const dy = Math.abs(f.y - phrase.y);
+              const dx = f.x - phrase.x;
+
+              // Case A: Widget is on the same horizontal row to the right of the label
+              if (dy < 22 && dx >= -10) {
+                const score = dy * 3 + Math.max(0, f.x - phrase.endX) * 0.5;
+                if (score < bestScore) {
+                  bestScore = score;
+                  bestField = f;
+                }
+              }
+              // Case B: Widget is directly below the label
+              else if (phrase.y - f.y > 0 && phrase.y - f.y < 48 && Math.abs(f.x - phrase.x) < 120) {
+                const score = (phrase.y - f.y) * 2 + Math.abs(f.x - phrase.x);
+                if (score < bestScore) {
+                  bestScore = score;
+                  bestField = f;
+                }
+              }
+            }
+            return bestField;
+          }
+
+          function matchByPrintedLabel(slotKey, labelRegex, sectionType) {
+            if (assignedSlots[slotKey]) return;
+            let matchingPhrases = phrases.filter((p) => labelRegex.test(p.text));
+            if (matchingPhrases.length === 0) return;
+
+            if (sectionType === 'debit' && matchingPhrases.length > 1 && debitAnchor && creditAnchor) {
+              matchingPhrases.sort((a, b) => {
+                const distA = Math.hypot(a.x - debitAnchor.x, a.y - debitAnchor.y);
+                const distB = Math.hypot(b.x - debitAnchor.x, b.y - debitAnchor.y);
+                return distA - distB;
+              });
+            } else if (sectionType === 'credit' && matchingPhrases.length > 1) {
+              if (debitAnchor && creditAnchor) {
+                matchingPhrases.sort((a, b) => {
+                  const distA = Math.hypot(a.x - creditAnchor.x, a.y - creditAnchor.y);
+                  const distB = Math.hypot(b.x - creditAnchor.x, b.y - creditAnchor.y);
+                  return distA - distB;
+                });
+              } else {
+                matchingPhrases = [matchingPhrases[matchingPhrases.length - 1]];
+              }
+            }
+
+            for (const phrase of matchingPhrases) {
+              const widget = findClosestWidgetForPhrase(phrase);
+              if (widget) {
+                assignedSlots[slotKey] = widget;
+                usedFieldNames.add(widget.name);
+                return;
+              }
+            }
+          }
+
+          matchByPrintedLabel('debitFrom', /debit\s*from/i, 'debit');
+          matchByPrintedLabel('debitDept', /\bdepartment\b/i, 'debit');
+          matchByPrintedLabel('debitExpense', /expense\s*type/i, 'debit');
+          matchByPrintedLabel('debitEvent', /\bevent\b/i, 'debit');
+          matchByPrintedLabel('totalTransferred', /total\s*to\s*be\s*transferred|total/i, 'any');
+          matchByPrintedLabel('reasonForTransfer', /reason\s*for\s*transfer|reason/i, 'any');
+          matchByPrintedLabel('creditTo', /credit\s*to/i, 'credit');
+          matchByPrintedLabel('creditDept', /\bdepartment\b/i, 'credit');
+          matchByPrintedLabel('creditExpense', /expense\s*type/i, 'credit');
+          matchByPrintedLabel('creditEvent', /\bevent\b/i, 'credit');
+
+          // 4. Reading-order fallback for any remaining unassigned slots
+          const remainingFields = fieldInfos.filter((f) => !usedFieldNames.has(f.name));
+          let remIdx = 0;
+          for (const slot of BLUE_FORM_SLOTS) {
+            if (!assignedSlots[slot.key] && remIdx < remainingFields.length) {
+              assignedSlots[slot.key] = remainingFields[remIdx++];
+            }
+          }
+
+          // Fill all matched AcroForm text fields
+          for (const slot of BLUE_FORM_SLOTS) {
+            const targetFieldInfo = assignedSlots[slot.key];
+            if (targetFieldInfo && targetFieldInfo.field) {
+              try {
+                targetFieldInfo.field.setText(String(slotValues[slot.key] || ''));
+              } catch (err) {
+                console.warn('Could not set text for field:', targetFieldInfo.name, err);
+              }
+            }
+          }
+
+          try {
+            const helv = await pdfDoc.embedFont(window.PDFLib.StandardFonts.Helvetica);
+            form.updateFieldAppearances(helv);
+          } catch (err) {}
+        } else {
+          // Flat PDF fallback: Draw text directly next to printed labels on Page 1
+          const pages = pdfDoc.getPages();
+          const page = pages[0];
+          const font = await pdfDoc.embedFont(window.PDFLib.StandardFonts.Helvetica);
+          const { rgb } = window.PDFLib;
+
+          const debitAnchor = phrases.find((p) => /debit\s*from/i.test(p.text));
+          const creditAnchor = phrases.find((p) => /credit\s*to/i.test(p.text));
+
+          function drawNextToLabel(labelRegex, textValue, occurrence = 'first') {
+            const matches = phrases.filter((p) => labelRegex.test(p.text));
+            if (matches.length === 0) return;
+            let phrase = matches[0];
+            if (occurrence === 'last' && matches.length > 1) {
+              phrase = matches[matches.length - 1];
+            } else if (occurrence === 'credit' && matches.length > 1 && creditAnchor) {
+              matches.sort(
+                (a, b) =>
+                  Math.hypot(a.x - creditAnchor.x, a.y - creditAnchor.y) -
+                  Math.hypot(b.x - creditAnchor.x, b.y - creditAnchor.y)
+              );
+              phrase = matches[0];
+            } else if (occurrence === 'debit' && matches.length > 1 && debitAnchor) {
+              matches.sort(
+                (a, b) =>
+                  Math.hypot(a.x - debitAnchor.x, a.y - debitAnchor.y) -
+                  Math.hypot(b.x - debitAnchor.x, b.y - debitAnchor.y)
+              );
+              phrase = matches[0];
+            }
+
+            page.drawText(String(textValue || ''), {
+              x: phrase.endX + 14,
+              y: phrase.y,
+              size: 10,
+              font,
+              color: rgb(0, 0, 0)
+            });
+          }
+
+          drawNextToLabel(/debit\s*from/i, slotValues.debitFrom, 'debit');
+          drawNextToLabel(/\bdepartment\b/i, slotValues.debitDept, 'debit');
+          drawNextToLabel(/expense\s*type/i, slotValues.debitExpense, 'debit');
+          drawNextToLabel(/\bevent\b/i, slotValues.debitEvent, 'debit');
+          drawNextToLabel(/total\s*to\s*be\s*transferred|total/i, slotValues.totalTransferred, 'first');
+          drawNextToLabel(/reason\s*for\s*transfer|reason/i, slotValues.reasonForTransfer, 'first');
+          drawNextToLabel(/credit\s*to/i, slotValues.creditTo, 'credit');
+          drawNextToLabel(/\bdepartment\b/i, slotValues.creditDept, 'credit');
+          drawNextToLabel(/expense\s*type/i, slotValues.creditExpense, 'credit');
+          drawNextToLabel(/\bevent\b/i, slotValues.creditEvent, 'credit');
+        }
+
+        // Save modified PDF and trigger browser download
+        const pdfBytes = await pdfDoc.save();
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const safeEventName = eventName.replace(/[\\/:*?"<>|]+/g, '_').trim() || 'Event';
+        const fileName = `BF_${safeEventName}.pdf`;
+
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+
+        const appsScriptUrl = (localStorage.getItem('treastrack_apps_script_url') || '').trim();
+        if (appsScriptUrl) {
+          showToast(`Downloaded "${fileName}". Syncing to Google Drive & creating Gmail draft...`, 5000);
+          await triggerGoogleDriveAndGmailAutomation({
+            appsScriptUrl,
+            parentFolderId: (localStorage.getItem('treastrack_parent_drive_folder') || '').trim(),
+            eventName,
+            fileName,
+            pdfBytes
+          });
+        } else {
+          showToast(`Downloaded "${fileName}" (Client: ${clientName} → Dept: ${deptCode})`);
+        }
+      } catch (err) {
+        console.error('Error generating Blue Form PDF:', err);
+        showToast('Error generating Blue Form PDF: ' + (err.message || 'Unknown error'));
+      }
+    }
+
+    function uint8ArrayToBase64(bytes) {
+      let binary = '';
+      const chunkSize = 0x8000;
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        const chunk = bytes.subarray(i, i + chunkSize);
+        binary += String.fromCharCode.apply(null, chunk);
+      }
+      return btoa(binary);
+    }
+
+    async function triggerGoogleDriveAndGmailAutomation({ appsScriptUrl, parentFolderId, eventName, fileName, pdfBytes }) {
+      const cleanUrl = appsScriptUrl.trim();
+      if (!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec/i.test(cleanUrl)) {
+        showToast('Invalid Apps Script URL: make sure it is the Web App URL ending in /exec.', 6000);
+        return;
+      }
+
+      try {
+        const pdfBase64 = uint8ArrayToBase64(pdfBytes);
+        const payload = {
+          eventName,
+          fileName,
+          pdfBase64,
+          parentFolderId
+        };
+
+        // credentials: 'omit' prevents the browser from sending multi-account Google cookies
+        // (which cause Google Apps Script to fail with "Sorry, unable to open the file at present").
+        // mode: 'no-cors' + text/plain avoids Origin: null redirect blocks when opened from file://.
+        await fetch(cleanUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          credentials: 'omit',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+
+        showToast(`✓ Sent "${fileName}" to Google Drive folder "${eventName}" & Gmail Drafts!`, 5500);
+      } catch (err) {
+        console.error('Failed to call Google Apps Script Web App:', err);
+        showToast('Could not reach Google Apps Script URL. Check Google Setup.', 6000);
+      }
+    }
+
+    // ==========================================
+    // 5. PDF Upload & Google Setup UI
+    // ==========================================
+    const templateFileInput = document.getElementById('templateFileInput');
+    const uploadTemplateBtn = document.getElementById('uploadTemplateBtn');
+    const uploadTemplateText = document.getElementById('uploadTemplateText');
+
+    uploadTemplateBtn.addEventListener('click', () => templateFileInput.click());
+
+    async function handleTemplateLoaded(name, buffer, save = true) {
+      templatePdfBuffer = buffer;
+      templatePdfName = name;
+      try {
+        await inspectTemplatePdf(buffer);
+        uploadTemplateText.textContent = '✓ Template';
+        uploadTemplateBtn.title = `Loaded: ${name} (click to replace)`;
+        if (save) {
+          await savePdfToDb('finance_template', name, buffer);
+          showToast(`Finance Template "${name}" saved.`);
+        }
+      } catch (err) {
+        console.error('Failed to read template PDF:', err);
+        uploadTemplateText.textContent = 'Upload Template';
+        uploadTemplateBtn.title = 'Error reading PDF file';
+        showToast('Error reading Template PDF file.');
+      }
+    }
+
+    templateFileInput.addEventListener('change', async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const buffer = await file.arrayBuffer();
+      await handleTemplateLoaded(file.name, buffer, true);
+      templateFileInput.value = '';
+    });
+
+    // Restore previously uploaded Template PDF from IndexedDB on startup
+    (async function restorePdfsOnStartup() {
+      const storedTemplate = await loadPdfFromDb('finance_template');
+      if (storedTemplate && storedTemplate.data) {
+        await handleTemplateLoaded(storedTemplate.name, storedTemplate.data, false);
+      }
+    })();
+
+    // Google Setup Modal & Apps Script Code Helper
+    const googleSetupBtn = document.getElementById('googleSetupBtn');
+    const googleSetupText = document.getElementById('googleSetupText');
+    const googleSetupModalBackdrop = document.getElementById('googleSetupModalBackdrop');
+    const closeGoogleSetupBtn = document.getElementById('closeGoogleSetupBtn');
+    const cancelGoogleSetupBtn = document.getElementById('cancelGoogleSetupBtn');
+    const googleSetupForm = document.getElementById('googleSetupForm');
+    const appsScriptUrlInput = document.getElementById('appsScriptUrlInput');
+    const parentDriveFolderInput = document.getElementById('parentDriveFolderInput');
+    const copyAppsScriptBtn = document.getElementById('copyAppsScriptBtn');
+    const testAppsScriptBtn = document.getElementById('testAppsScriptBtn');
+    const googleTestStatus = document.getElementById('googleTestStatus');
+
+    const APPS_SCRIPT_SOURCE_CODE = [
+      'function doGet(e) {',
+      '  try {',
+      '    var rootName = DriveApp.getRootFolder().getName();',
+      '    var draftsCount = GmailApp.getDrafts().length;',
+      '    var hasAdvancedGmail = (typeof Gmail !== "undefined" && Boolean(Gmail.Users));',
+      '    var sig = getGmailSignatureHtml();',
+      '    var msg = [',
+      '      "✓ TreasTrack Google Apps Script is active and authorized!",',
+      '      "",',
+      '      "• Google Drive connected (Root: " + rootName + ")",',
+      '      "• Gmail connected (Current drafts: " + draftsCount + ")",',
+      '      "• Advanced Gmail API service enabled: " + (hasAdvancedGmail ? "Yes" : "No (optional)"),',
+      '      "• Default Gmail signature detected: " + (sig ? "Yes" : "No")',
+      '    ].join("\\n");',
+      '    return ContentService.createTextOutput(msg).setMimeType(ContentService.MimeType.TEXT);',
+      '  } catch (err) {',
+      '    return ContentService.createTextOutput("Error: " + (err && err.message ? err.message : String(err))).setMimeType(ContentService.MimeType.TEXT);',
+      '  }',
+      '}',
+      'function doPost(e) {',
+      '  try {',
+      '    var raw = (e && e.postData && e.postData.contents) ? e.postData.contents : "{}";',
+      '    var payload = JSON.parse(raw);',
+      '    var eventName = (payload.eventName || "Untitled Event").trim();',
+      '    var fileName = (payload.fileName || ("BF_" + eventName + ".pdf")).trim();',
+      '    var pdfBase64 = payload.pdfBase64 || "";',
+      '    var parentFolderId = extractFolderId(payload.parentFolderId || "");',
+      '    if (!pdfBase64) return jsonResponse({ success: false, error: "Missing PDF data." });',
+      '    var pdfBytes = Utilities.base64Decode(pdfBase64);',
+      '    var pdfBlob = Utilities.newBlob(pdfBytes, "application/pdf", fileName);',
+      '    var parentFolder = parentFolderId ? DriveApp.getFolderById(parentFolderId) : DriveApp.getRootFolder();',
+      '    var existing = parentFolder.getFoldersByName(eventName);',
+      '    var eventFolder = existing.hasNext() ? existing.next() : parentFolder.createFolder(eventName);',
+      '    var savedFile = eventFolder.createFile(pdfBlob);',
+      '    var subject = "Blue Form - " + eventName;',
+      '    var plainBody = "Hi,\\n\\nPlease find attached the Blue Form for " + eventName;',
+      '    var htmlBody = "<div style=\\"font-family: Arial, sans-serif; font-size: 14px; color: #222222;\\"><p>Hi,</p><p>Please find attached the Blue Form for " + escapeHtml(eventName) + "</p></div>";',
+      '    var sig = getGmailSignatureHtml();',
+      '    if (sig) htmlBody += "<br>" + sig;',
+      '    createGmailDraft(subject, plainBody, htmlBody, pdfBlob);',
+      '    return jsonResponse({ success: true, folderUrl: eventFolder.getUrl(), fileUrl: savedFile.getUrl() });',
+      '  } catch (err) {',
+      '    return jsonResponse({ success: false, error: err && err.message ? err.message : String(err) });',
+      '  }',
+      '}',
+      'function extractFolderId(input) {',
+      '  var str = String(input || "").trim();',
+      '  if (!str) return "";',
+      '  var fm = str.match(/\\/folders\\/([a-zA-Z0-9_-]+)/);',
+      '  if (fm) return fm[1];',
+      '  var m = str.match(/[-\\w]{25,}/);',
+      '  return m ? m[0] : str;',
+      '}',
+      'function getGmailSignatureHtml() {',
+      '  try {',
+      '    if (typeof Gmail !== "undefined" && Gmail.Users && Gmail.Users.Settings) {',
+      '      var res = Gmail.Users.Settings.SendAs.list("me");',
+      '      if (res && res.sendAs) {',
+      '        for (var i = 0; i < res.sendAs.length; i++) {',
+      '          if (res.sendAs[i].isDefault && res.sendAs[i].signature) return res.sendAs[i].signature;',
+      '        }',
+      '      }',
+      '    }',
+      '  } catch (e) {}',
+      '  return "";',
+      '}',
+      'function createGmailDraft(subject, plainBody, htmlBody, pdfBlob) {',
+      '  if (typeof Gmail !== "undefined" && Gmail.Users && Gmail.Users.Drafts) {',
+      '    try {',
+      '      var boundary = "treastrack_" + Utilities.getUuid();',
+      '      var safeName = pdfBlob.getName().replace(/"/g, "");',
+      '      var mime = [',
+      '        "MIME-Version: 1.0",',
+      '        "Subject: =?UTF-8?B?" + Utilities.base64Encode(subject, Utilities.Charset.UTF_8) + "?=",',
+      '        "Content-Type: multipart/mixed; boundary=\\"" + boundary + "\\"",',
+      '        "",',
+      '        "--" + boundary,',
+      '        "Content-Type: text/html; charset=\\"UTF-8\\"",',
+      '        "Content-Transfer-Encoding: base64",',
+      '        "",',
+      '        Utilities.base64Encode(htmlBody, Utilities.Charset.UTF_8),',
+      '        "",',
+      '        "--" + boundary,',
+      '        "Content-Type: application/pdf; name=\\"" + safeName + "\\"",',
+      '        "Content-Disposition: attachment; filename=\\"" + safeName + "\\"",',
+      '        "Content-Transfer-Encoding: base64",',
+      '        "",',
+      '        Utilities.base64Encode(pdfBlob.getBytes()),',
+      '        "--" + boundary + "--"',
+      '      ].join("\\r\\n");',
+      '      Gmail.Users.Drafts.create({ message: { raw: Utilities.base64EncodeWebSafe(mime, Utilities.Charset.UTF_8) } }, "me");',
+      '      return;',
+      '    } catch (e) {}',
+      '  }',
+      '  try {',
+      '    GmailApp.createDraft("", subject, plainBody, { htmlBody: htmlBody, attachments: [pdfBlob] });',
+      '  } catch (err) {',
+      '    var fallback = Session.getActiveUser().getEmail() || "recipient@example.com";',
+      '    GmailApp.createDraft(fallback, subject, plainBody, { htmlBody: htmlBody, attachments: [pdfBlob] });',
+      '  }',
+      '}',
+      'function escapeHtml(s) {',
+      '  return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");',
+      '}',
+      'function jsonResponse(obj) {',
+      '  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);',
+      '}'
+    ].join('\n');
+
+    function updateGoogleSetupButtonStatus() {
+      const savedUrl = (localStorage.getItem('treastrack_apps_script_url') || '').trim();
+      if (savedUrl) {
+        googleSetupText.textContent = '✓ Google';
+        googleSetupBtn.title = 'Google Drive & Gmail connected (click to edit settings)';
+      } else {
+        googleSetupText.textContent = 'Google Setup';
+        googleSetupBtn.title = 'Configure Google Drive & Gmail automation';
+      }
+    }
+
+    function openGoogleSetupModal() {
+      appsScriptUrlInput.value = localStorage.getItem('treastrack_apps_script_url') || '';
+      parentDriveFolderInput.value = localStorage.getItem('treastrack_parent_drive_folder') || '';
+      googleTestStatus.textContent = '';
+      googleSetupModalBackdrop.classList.add('open');
+      appsScriptUrlInput.focus();
+    }
+
+    function closeGoogleSetupModal() {
+      googleSetupModalBackdrop.classList.remove('open');
+    }
+
+    googleSetupBtn.addEventListener('click', openGoogleSetupModal);
+    closeGoogleSetupBtn.addEventListener('click', closeGoogleSetupModal);
+    cancelGoogleSetupBtn.addEventListener('click', closeGoogleSetupModal);
+
+    googleSetupModalBackdrop.addEventListener('click', (e) => {
+      if (e.target === googleSetupModalBackdrop) {
+        closeGoogleSetupModal();
+      }
+    });
+
+    copyAppsScriptBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(APPS_SCRIPT_SOURCE_CODE);
+        showToast('Apps Script code copied to clipboard!');
+      } catch (err) {
+        showToast('See google-apps-script.js in your project folder for the code.');
+      }
+    });
+
+    testAppsScriptBtn.addEventListener('click', async () => {
+      const url = appsScriptUrlInput.value.trim();
+      if (!url) {
+        showToast('Please paste your Apps Script Web App URL first.');
+        appsScriptUrlInput.focus();
+        return;
+      }
+      if (!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec/i.test(url)) {
+        googleTestStatus.textContent = '✗ URL must start with https://script.google.com/macros/s/ and end with /exec';
+        return;
+      }
+      googleTestStatus.textContent = 'Testing connection to Google Apps Script...';
+      try {
+        await fetch(url, {
+          method: 'GET',
+          mode: 'no-cors',
+          credentials: 'omit'
+        });
+        googleTestStatus.textContent =
+          '✓ Web App URL is reachable! Make sure you clicked "Run" (on doGet) inside the Apps Script editor once to approve Drive & Gmail permissions.';
+      } catch (err) {
+        googleTestStatus.textContent = '✗ Could not reach URL. Check your internet connection and Web App URL.';
+      }
+    });
+
+    googleSetupForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      try {
+        localStorage.setItem('treastrack_apps_script_url', appsScriptUrlInput.value.trim());
+        localStorage.setItem('treastrack_parent_drive_folder', parentDriveFolderInput.value.trim());
+      } catch (err) {}
+      updateGoogleSetupButtonStatus();
+      closeGoogleSetupModal();
+      showToast('Google Drive & Gmail settings saved.');
+    });
+
+    updateGoogleSetupButtonStatus();
+
+    // ==========================================
+    // 6. Events State, Sorting, Rendering & Modal
+    // ==========================================
+    const openModalBtn = document.getElementById('openModalBtn');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const modalBackdrop = document.getElementById('modalBackdrop');
+    const modalTitleEl = document.getElementById('modalTitle');
+    const submitEventBtn = document.getElementById('submitEventBtn');
+    const eventForm = document.getElementById('eventForm');
+    const eventsList = document.getElementById('eventsList');
+    const emptyState = document.getElementById('emptyState');
+    const clientNameInput = document.getElementById('clientName');
+    const clientCodeHint = document.getElementById('clientCodeHint');
+
+    let editingEventId = null;
+    let events = [];
+    try {
+      const stored = localStorage.getItem('treastrack_events');
+      if (stored) events = JSON.parse(stored);
+    } catch (e) {
+      events = [];
+    }
+
+    events.forEach((ev) => {
+      if (!ev.id) {
+        ev.id = 'evt_' + Date.now() + '_' + Math.random().toString(36).substr(2, 7);
+      }
+    });
+
+    function saveEvents() {
+      try {
+        localStorage.setItem('treastrack_events', JSON.stringify(events));
+      } catch (err) {}
+    }
+
+    function sortEvents() {
+      events.sort((a, b) => {
+        const startA = a.startDate || '';
+        const startB = b.startDate || '';
+        if (startA !== startB) {
+          return startB.localeCompare(startA);
+        }
+        const endA = a.endDate || '';
+        const endB = b.endDate || '';
+        if (endA !== endB) {
+          return endB.localeCompare(endA);
+        }
+        return (b.createdAt || '').localeCompare(a.createdAt || '');
+      });
+    }
+
+    function updateClientCodeHint() {
+      const val = clientNameInput.value.trim();
+      if (!val) {
+        clientCodeHint.textContent = '';
+        clientCodeHint.classList.remove('unlisted');
+        return;
+      }
+      const record = findSocietyRecordForClient(val);
+      if (record) {
+        clientCodeHint.textContent = `Department Code: ${record.code} (${record.name})`;
+        clientCodeHint.classList.remove('unlisted');
+      } else {
+        clientCodeHint.textContent = 'Client not listed — Blue Form disabled';
+        clientCodeHint.classList.add('unlisted');
+      }
+    }
+
+    clientNameInput.addEventListener('input', updateClientCodeHint);
+
+    function renderEvents() {
+      sortEvents();
+
+      if (events.length === 0) {
+        emptyState.style.display = 'block';
+        eventsList.innerHTML = '';
+        eventsList.appendChild(emptyState);
+        return;
+      }
+
+      emptyState.style.display = 'none';
+      eventsList.innerHTML = '';
+      eventsList.appendChild(emptyState);
+
+      events.forEach((ev) => {
+        const card = document.createElement('div');
+        card.className = 'event-card';
+
+        const chargeFormatted = parseFloat(ev.charge || 0).toLocaleString('en-GB', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        });
+
+        const clientDisplay = ev.clientName ? escapeHtml(ev.clientName) : 'No Client';
+        const deptCode = ev.clientName ? findDepartmentCodeForClient(ev.clientName) : '';
+        const isClientListed = Boolean(deptCode);
+
+        const clientBadgeClass = isClientListed ? 'event-client-badge' : 'event-client-badge unlisted';
+        const clientBadgeText = isClientListed
+          ? `Client: ${clientDisplay} (${escapeHtml(deptCode)})`
+          : `Client: ${clientDisplay} (Not listed)`;
+
+        card.innerHTML = `
+          <div class="event-card-header">
+            <div class="event-title-group">
+              <span class="event-title">${escapeHtml(ev.name)}</span>
+              <span class="${clientBadgeClass}">${clientBadgeText}</span>
+              <span class="event-charge">£${chargeFormatted}</span>
+            </div>
+            <div class="event-card-actions">
+              <button class="btn-edit" type="button" data-id="${ev.id}">Edit</button>
+              <button class="btn-delete" type="button" data-id="${ev.id}">Delete</button>
+            </div>
+          </div>
+          <div class="event-dates">
+            ${escapeHtml(ev.startDate)} &mdash; ${escapeHtml(ev.endDate)}
+          </div>
+          <div class="card-footer-row">
+            <div class="card-checkbox-group">
+              <label class="checkbox-label">
+                <input type="checkbox" class="card-checkbox" data-id="${ev.id}" data-field="financeEntryCreated" ${ev.financeEntryCreated ? 'checked' : ''}>
+                Finance entry created
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" class="card-checkbox" data-id="${ev.id}" data-field="invoiceDrafted" ${ev.invoiceDrafted ? 'checked' : ''}>
+                Invoice drafted
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" class="card-checkbox" data-id="${ev.id}" data-field="invoiceSent" ${ev.invoiceSent ? 'checked' : ''}>
+                Invoice sent
+              </label>
+            </div>
+            <button class="btn-secondary btn-sm btn-blue-form" type="button" data-id="${ev.id}" ${isClientListed ? '' : 'disabled title="Client not listed — Blue Form not required"'}>Blue Form</button>
+          </div>
+        `;
+        eventsList.appendChild(card);
+      });
+
+      // Attach interactive checkbox change handlers
+      document.querySelectorAll('.card-checkbox').forEach((checkbox) => {
+        checkbox.addEventListener('change', (e) => {
+          const id = e.target.getAttribute('data-id');
+          const field = e.target.getAttribute('data-field');
+          const targetEvent = events.find((item) => item.id === id);
+          if (targetEvent && field) {
+            targetEvent[field] = e.target.checked;
+            saveEvents();
+          }
+        });
+      });
+
+      // Attach Blue Form button handlers on each event card
+      document.querySelectorAll('.btn-blue-form').forEach((btn) => {
+        btn.addEventListener('click', async (e) => {
+          if (e.currentTarget.disabled) return;
+          const id = e.currentTarget.getAttribute('data-id');
+          const targetEvent = events.find((item) => item.id === id);
+          if (targetEvent) {
+            await generateBlueFormPdf(targetEvent);
+          }
+        });
+      });
+
+      // Attach Edit button handlers
+      document.querySelectorAll('.btn-edit').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          const id = e.currentTarget.getAttribute('data-id');
+          const targetEvent = events.find((item) => item.id === id);
+          if (targetEvent) {
+            openEditModal(targetEvent);
+          }
+        });
+      });
+
+      // Attach delete handlers
+      document.querySelectorAll('.btn-delete').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          const id = e.currentTarget.getAttribute('data-id');
+          events = events.filter((item) => item.id !== id);
+          saveEvents();
+          renderEvents();
+        });
+      });
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function openModal() {
+      editingEventId = null;
+      modalTitleEl.textContent = 'Add Event';
+      submitEventBtn.textContent = 'Save Event';
+      eventForm.reset();
+      clientCodeHint.textContent = '';
+      clientCodeHint.classList.remove('unlisted');
+      modalBackdrop.classList.add('open');
+      document.getElementById('eventName').focus();
+    }
+
+    function openEditModal(ev) {
+      editingEventId = ev.id;
+      modalTitleEl.textContent = 'Edit Event';
+      submitEventBtn.textContent = 'Save Changes';
+
+      document.getElementById('eventName').value = ev.name || '';
+      document.getElementById('clientName').value = ev.clientName || '';
+      document.getElementById('eventCharge').value = ev.charge !== undefined ? ev.charge : '';
+      document.getElementById('startDate').value = ev.startDate || '';
+      document.getElementById('endDate').value = ev.endDate || '';
+      document.getElementById('financeEntryCreated').checked = !!ev.financeEntryCreated;
+      document.getElementById('invoiceDrafted').checked = !!ev.invoiceDrafted;
+      document.getElementById('invoiceSent').checked = !!ev.invoiceSent;
+
+      updateClientCodeHint();
+      modalBackdrop.classList.add('open');
+      document.getElementById('eventName').focus();
+    }
+
+    function closeModal() {
+      modalBackdrop.classList.remove('open');
+      editingEventId = null;
+      eventForm.reset();
+      clientCodeHint.textContent = '';
+    }
+
+    openModalBtn.addEventListener('click', openModal);
+    closeModalBtn.addEventListener('click', closeModal);
+    cancelBtn.addEventListener('click', closeModal);
+
+    modalBackdrop.addEventListener('click', (e) => {
+      if (e.target === modalBackdrop) {
+        closeModal();
+      }
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (modalBackdrop.classList.contains('open')) closeModal();
+        if (googleSetupModalBackdrop.classList.contains('open')) closeGoogleSetupModal();
+        if (handoverModalBackdrop && handoverModalBackdrop.classList.contains('open')) closeHandoverModal();
+        if (clientIdModalBackdrop && clientIdModalBackdrop.classList.contains('open')) closeClientIdModal();
+      }
+    });
+
+    eventForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      if (editingEventId) {
+        const target = events.find((item) => item.id === editingEventId);
+        if (target) {
+          target.name = document.getElementById('eventName').value.trim();
+          target.clientName = document.getElementById('clientName').value.trim();
+          target.charge = document.getElementById('eventCharge').value;
+          target.startDate = document.getElementById('startDate').value;
+          target.endDate = document.getElementById('endDate').value;
+          target.financeEntryCreated = document.getElementById('financeEntryCreated').checked;
+          target.invoiceDrafted = document.getElementById('invoiceDrafted').checked;
+          target.invoiceSent = document.getElementById('invoiceSent').checked;
+        }
+      } else {
+        const newEvent = {
+          id: 'evt_' + Date.now() + '_' + Math.random().toString(36).substr(2, 7),
+          name: document.getElementById('eventName').value.trim(),
+          clientName: document.getElementById('clientName').value.trim(),
+          charge: document.getElementById('eventCharge').value,
+          startDate: document.getElementById('startDate').value,
+          endDate: document.getElementById('endDate').value,
+          financeEntryCreated: document.getElementById('financeEntryCreated').checked,
+          invoiceDrafted: document.getElementById('invoiceDrafted').checked,
+          invoiceSent: document.getElementById('invoiceSent').checked,
+          createdAt: new Date().toISOString()
+        };
+        events.push(newEvent);
+      }
+
+      sortEvents();
+      saveEvents();
+
+      renderEvents();
+      closeModal();
+    });
+
+    // ==========================================
+    // Authentication Gatekeeper (treas@bts-crew.com)
+    // ==========================================
+    const AUTHORIZED_EMAIL = 'treas@bts-crew.com';
+    const AUTH_STORAGE_KEY = 'treastrack_auth_user';
+    const CLIENT_ID_STORAGE_KEY = 'treastrack_google_client_id';
+
+    const loginOverlay = document.getElementById('loginOverlay');
+    const appContainer = document.getElementById('appContainer');
+    const loginErrorMsg = document.getElementById('loginErrorMsg');
+    const userPillEmail = document.getElementById('userPillEmail');
+    const signOutBtn = document.getElementById('signOutBtn');
+    const devSignInBtn = document.getElementById('devSignInBtn');
+    const configClientIdBtn = document.getElementById('configClientIdBtn');
+    const clientIdModalBackdrop = document.getElementById('clientIdModalBackdrop');
+    const closeClientIdModalBtn = document.getElementById('closeClientIdModalBtn');
+    const cancelClientIdBtn = document.getElementById('cancelClientIdBtn');
+    const clientIdForm = document.getElementById('clientIdForm');
+    const googleClientIdInput = document.getElementById('googleClientIdInput');
+
+    function parseJwt(token) {
+      try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(
+          atob(base64)
+            .split('')
+            .map(function (c) {
+              return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            })
+            .join('')
+        );
+        return JSON.parse(jsonPayload);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function getStoredAuthUser() {
+      try {
+        const item = localStorage.getItem(AUTH_STORAGE_KEY);
+        return item ? JSON.parse(item) : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function setStoredAuthUser(user) {
+      try {
+        if (user) {
+          localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
+        } else {
+          localStorage.removeItem(AUTH_STORAGE_KEY);
+        }
+      } catch (e) {}
+    }
+
+    function showLoginError(msg) {
+      loginErrorMsg.textContent = msg;
+      loginErrorMsg.style.display = 'block';
+    }
+
+    function clearLoginError() {
+      loginErrorMsg.textContent = '';
+      loginErrorMsg.style.display = 'none';
+    }
+
+    function authorizeUser(userData) {
+      const email = (userData.email || '').trim().toLowerCase();
+      if (email === AUTHORIZED_EMAIL.toLowerCase()) {
+        clearLoginError();
+        setStoredAuthUser(userData);
+        userPillEmail.textContent = userData.email;
+        loginOverlay.style.display = 'none';
+        appContainer.style.display = 'block';
+        showToast(`Signed in as ${userData.email}`);
+        checkAcademicYearRollover();
+        return true;
+      } else {
+        showLoginError(`Access Denied: Signed in as "${userData.email}". Only ${AUTHORIZED_EMAIL} is authorized to access TreasTrack. Please switch to the official society account.`);
+        if (window.google?.accounts?.id) {
+          window.google.accounts.id.disableAutoSelect();
+        }
+        return false;
+      }
+    }
+
+    function handleGoogleCredentialResponse(response) {
+      if (!response || !response.credential) {
+        showLoginError('Google Sign-In failed: No credential returned.');
+        return;
+      }
+      const payload = parseJwt(response.credential);
+      if (!payload || !payload.email) {
+        showLoginError('Google Sign-In failed: Could not read email from credential token.');
+        return;
+      }
+      authorizeUser({
+        email: payload.email,
+        name: payload.name || 'BTS Treasurer',
+        sub: payload.sub
+      });
+    }
+
+    function signOut() {
+      setStoredAuthUser(null);
+      appContainer.style.display = 'none';
+      loginOverlay.style.display = 'flex';
+      clearLoginError();
+      if (window.google?.accounts?.id) {
+        window.google.accounts.id.disableAutoSelect();
+      }
+      showToast('Signed out successfully.');
+    }
+
+    signOutBtn.addEventListener('click', signOut);
+
+    devSignInBtn.addEventListener('click', () => {
+      authorizeUser({
+        email: AUTHORIZED_EMAIL,
+        name: 'BTS Treasurer (Dev/Local)'
+      });
+    });
+
+    function initGoogleAuth() {
+      const clientId = (localStorage.getItem(CLIENT_ID_STORAGE_KEY) || '').trim();
+      const gSignInBtn = document.getElementById('gSignInBtn');
+
+      if (!clientId) {
+        gSignInBtn.innerHTML = `
+          <div style="font-size: 0.8rem; color: var(--text-muted); padding: 8px 12px; border: 1px dashed var(--border-color); background: var(--surface-light); text-align: center; width: 100%;">
+            Google OAuth Client ID not configured.<br>
+            <span style="font-size: 0.76rem;">Click <strong>OAuth Client ID</strong> below to configure, or <strong>Dev / Local Sign In</strong> for local testing.</span>
+          </div>`;
+        return;
+      }
+
+      if (window.google && window.google.accounts && window.google.accounts.id) {
+        try {
+          window.google.accounts.id.initialize({
+            client_id: clientId,
+            callback: handleGoogleCredentialResponse,
+            auto_select: false
+          });
+          gSignInBtn.innerHTML = '';
+          window.google.accounts.id.renderButton(gSignInBtn, {
+            theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'filled_black' : 'outline',
+            size: 'large',
+            type: 'standard',
+            shape: 'rectangular',
+            text: 'signin_with',
+            logo_alignment: 'left',
+            width: 320
+          });
+        } catch (err) {
+          console.warn('GIS init error:', err);
+          gSignInBtn.innerHTML = `<div style="font-size: 0.8rem; color: var(--danger-text);">Google Sign-In error: ${escapeHtml(err.message)}</div>`;
+        }
+      } else {
+        setTimeout(initGoogleAuth, 400);
+      }
+    }
+
+    configClientIdBtn.addEventListener('click', () => {
+      googleClientIdInput.value = localStorage.getItem(CLIENT_ID_STORAGE_KEY) || '';
+      clientIdModalBackdrop.classList.add('open');
+      googleClientIdInput.focus();
+    });
+
+    function closeClientIdModal() {
+      clientIdModalBackdrop.classList.remove('open');
+    }
+
+    closeClientIdModalBtn.addEventListener('click', closeClientIdModal);
+    cancelClientIdBtn.addEventListener('click', closeClientIdModal);
+    clientIdModalBackdrop.addEventListener('click', (e) => {
+      if (e.target === clientIdModalBackdrop) closeClientIdModal();
+    });
+
+    clientIdForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const val = googleClientIdInput.value.trim();
+      if (val) {
+        localStorage.setItem(CLIENT_ID_STORAGE_KEY, val);
+        showToast('OAuth Client ID saved.');
+      } else {
+        localStorage.removeItem(CLIENT_ID_STORAGE_KEY);
+        showToast('OAuth Client ID removed.');
+      }
+      closeClientIdModal();
+      initGoogleAuth();
+    });
+
+    // ==========================================
+    // Academic Year Rollover & Handover System
+    // ==========================================
+    const ACADEMIC_YEAR_KEY = 'treastrack_academic_year';
+    const ARCHIVES_INDEX_KEY = 'treastrack_archives_index';
+
+    const academicYearBtn = document.getElementById('academicYearBtn');
+    const currentYearBadgeText = document.getElementById('currentYearBadgeText');
+    const rolloverBanner = document.getElementById('rolloverBanner');
+    const rolloverBannerMsg = document.getElementById('rolloverBannerMsg');
+    const viewArchiveBannerBtn = document.getElementById('viewArchiveBannerBtn');
+    const dismissRolloverBannerBtn = document.getElementById('dismissRolloverBannerBtn');
+
+    const handoverModalBackdrop = document.getElementById('handoverModalBackdrop');
+    const closeHandoverModalBtn = document.getElementById('closeHandoverModalBtn');
+    const closeHandoverBottomBtn = document.getElementById('closeHandoverBottomBtn');
+    const modalCurrentYearDisplay = document.getElementById('modalCurrentYearDisplay');
+    const modalActiveEventsCount = document.getElementById('modalActiveEventsCount');
+    const modalActiveTotalCharge = document.getElementById('modalActiveTotalCharge');
+    const exportYearBackupBtn = document.getElementById('exportYearBackupBtn');
+    const manualRolloverBtn = document.getElementById('manualRolloverBtn');
+    const archivedYearsList = document.getElementById('archivedYearsList');
+
+    function getCurrentAcademicYear(date = new Date()) {
+      const year = date.getFullYear();
+      const month = date.getMonth(); // 0-indexed: 0 = Jan, 7 = Aug
+      if (month >= 7) {
+        return `${year}–${year + 1}`;
+      } else {
+        return `${year - 1}–${year}`;
+      }
+    }
+
+    function getArchivedYearsIndex() {
+      try {
+        const raw = localStorage.getItem(ARCHIVES_INDEX_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveArchivedYearsIndex(index) {
+      try {
+        localStorage.setItem(ARCHIVES_INDEX_KEY, JSON.stringify(index));
+      } catch (e) {}
+    }
+
+    function performAcademicYearRollover(oldYear, newYear, isAutomatic = false) {
+      const currentEventsBackup = [...events];
+      const totalCharge = currentEventsBackup.reduce((sum, ev) => sum + (parseFloat(ev.charge) || 0), 0);
+
+      try {
+        localStorage.setItem(`treastrack_archive_${oldYear}`, JSON.stringify(currentEventsBackup));
+      } catch (e) {
+        console.error('Failed to store archive for', oldYear, e);
+      }
+
+      const index = getArchivedYearsIndex().filter(item => item.year !== oldYear);
+      index.unshift({
+        year: oldYear,
+        archivedAt: new Date().toISOString(),
+        eventCount: currentEventsBackup.length,
+        totalCharge: totalCharge.toFixed(2),
+        autoRollover: isAutomatic
+      });
+      saveArchivedYearsIndex(index);
+
+      // Reset active events workspace for incoming treasurer
+      events = [];
+      saveEvents();
+      renderEvents();
+
+      localStorage.setItem(ACADEMIC_YEAR_KEY, newYear);
+      currentYearBadgeText.textContent = newYear;
+
+      rolloverBannerMsg.textContent = `Welcome to the ${newYear} financial year! ${currentEventsBackup.length} events from ${oldYear} have been safely archived, and the active workspace has been reset for the incoming treasurer.`;
+      rolloverBanner.style.display = 'flex';
+      showToast(`Rollover complete: Archived ${oldYear} (${currentEventsBackup.length} events). Active workspace reset for ${newYear}.`, 6000);
+    }
+
+    function checkAcademicYearRollover() {
+      const currentYear = getCurrentAcademicYear();
+      currentYearBadgeText.textContent = currentYear;
+      modalCurrentYearDisplay.textContent = currentYear;
+
+      let storedYear = localStorage.getItem(ACADEMIC_YEAR_KEY);
+      if (!storedYear) {
+        localStorage.setItem(ACADEMIC_YEAR_KEY, currentYear);
+        return;
+      }
+
+      if (storedYear !== currentYear) {
+        performAcademicYearRollover(storedYear, currentYear, /* isAutomatic= */ true);
+      }
+    }
+
+    function updateHandoverModalStats() {
+      const currentYear = getCurrentAcademicYear();
+      modalCurrentYearDisplay.textContent = currentYear;
+      modalActiveEventsCount.textContent = events.length;
+      const total = events.reduce((sum, ev) => sum + (parseFloat(ev.charge) || 0), 0);
+      modalActiveTotalCharge.textContent = `£${total.toFixed(2)}`;
+
+      const archives = getArchivedYearsIndex();
+      if (archives.length === 0) {
+        archivedYearsList.innerHTML = `<div id="noArchivesMsg" style="font-size: 0.82rem; color: var(--text-muted); padding: 8px 0;">No archived years yet. Previous years will appear here after 1st August rollover.</div>`;
+      } else {
+        archivedYearsList.innerHTML = '';
+        archives.forEach(arch => {
+          const row = document.createElement('div');
+          row.className = 'archive-item-row';
+          const formattedDate = arch.archivedAt ? new Date(arch.archivedAt).toLocaleDateString('en-GB') : '';
+          row.innerHTML = `
+            <div>
+              <strong>${escapeHtml(arch.year)}</strong>
+              <span style="color: var(--text-muted); margin-left: 8px; font-size: 0.78rem;">${arch.eventCount} events • £${arch.totalCharge || '0.00'}${formattedDate ? ' • Archived ' + formattedDate : ''}</span>
+            </div>
+            <div style="display: flex; gap: 6px;">
+              <button type="button" class="btn-secondary btn-sm btn-download-archive" data-year="${escapeHtml(arch.year)}" title="Download archive JSON">📥 Download</button>
+              <button type="button" class="btn-secondary btn-sm btn-restore-archive" data-year="${escapeHtml(arch.year)}" title="Restore this year's events into current view">Restore</button>
+            </div>
+          `;
+          archivedYearsList.appendChild(row);
+        });
+
+        archivedYearsList.querySelectorAll('.btn-download-archive').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const year = e.currentTarget.getAttribute('data-year');
+            downloadArchiveJson(year);
+          });
+        });
+
+        archivedYearsList.querySelectorAll('.btn-restore-archive').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const year = e.currentTarget.getAttribute('data-year');
+            restoreArchive(year);
+          });
+        });
+      }
+    }
+
+    function downloadArchiveJson(year) {
+      try {
+        const raw = localStorage.getItem(`treastrack_archive_${year}`);
+        if (!raw) {
+          alert(`No archive data found for ${year}.`);
+          return;
+        }
+        const blob = new Blob([raw], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `TreasTrack_${year}_Archive.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast(`Downloaded ${year} archive backup.`);
+      } catch (err) {
+        alert('Failed to download archive: ' + err.message);
+      }
+    }
+
+    function restoreArchive(year) {
+      const confirmed = confirm(`Are you sure you want to restore the archived events from ${year} into the active workspace? This will replace your current active events.`);
+      if (!confirmed) return;
+
+      try {
+        const raw = localStorage.getItem(`treastrack_archive_${year}`);
+        if (!raw) {
+          alert(`No archive data found for ${year}.`);
+          return;
+        }
+        events = JSON.parse(raw);
+        saveEvents();
+        renderEvents();
+        closeHandoverModal();
+        showToast(`Restored ${events.length} events from ${year}.`);
+      } catch (err) {
+        alert('Failed to restore archive: ' + err.message);
+      }
+    }
+
+    function downloadActiveYearBackup() {
+      const currentYear = getCurrentAcademicYear();
+      const data = {
+        academicYear: currentYear,
+        exportedAt: new Date().toISOString(),
+        events: events
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `TreasTrack_${currentYear}_Active_Backup.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast(`Downloaded active events backup for ${currentYear}.`);
+    }
+
+    function openHandoverModal() {
+      updateHandoverModalStats();
+      handoverModalBackdrop.classList.add('open');
+    }
+
+    function closeHandoverModal() {
+      handoverModalBackdrop.classList.remove('open');
+    }
+
+    academicYearBtn.addEventListener('click', openHandoverModal);
+    viewArchiveBannerBtn.addEventListener('click', openHandoverModal);
+    dismissRolloverBannerBtn.addEventListener('click', () => {
+      rolloverBanner.style.display = 'none';
+    });
+    closeHandoverModalBtn.addEventListener('click', closeHandoverModal);
+    closeHandoverBottomBtn.addEventListener('click', closeHandoverModal);
+    handoverModalBackdrop.addEventListener('click', (e) => {
+      if (e.target === handoverModalBackdrop) closeHandoverModal();
+    });
+
+    exportYearBackupBtn.addEventListener('click', downloadActiveYearBackup);
+
+    manualRolloverBtn.addEventListener('click', () => {
+      const currentYear = getCurrentAcademicYear();
+      const nextYearParts = currentYear.split('–').map(Number);
+      const suggestedNextYear = !isNaN(nextYearParts[0]) ? `${nextYearParts[0] + 1}–${nextYearParts[1] + 1}` : 'New Year';
+
+      const confirmMsg = `Handover / Year Reset Confirmation:\n\n` +
+        `This will archive all currently active events (${events.length} events) under "${currentYear}" ` +
+        `and reset the active workspace for the incoming treasurer (${suggestedNextYear}).\n\n` +
+        `Are you sure you want to proceed?`;
+
+      if (confirm(confirmMsg)) {
+        performAcademicYearRollover(currentYear, suggestedNextYear, /* isAutomatic= */ false);
+        updateHandoverModalStats();
+      }
+    });
+
+    // Check existing authentication state & initialize
+    const initialUser = getStoredAuthUser();
+    if (initialUser && initialUser.email && initialUser.email.toLowerCase() === AUTHORIZED_EMAIL.toLowerCase()) {
+      authorizeUser(initialUser);
+    } else {
+      signOut();
+    }
+    initGoogleAuth();
+
+    // Initial render
+    renderEvents();
+  </script>
+</body>
+</html>
