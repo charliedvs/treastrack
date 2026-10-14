@@ -2457,6 +2457,17 @@
       loginErrorMsg.style.display = 'none';
     }
 
+    // Permanent default Client ID embedded in code so no device ever loses it:
+    const DEFAULT_CLIENT_ID = '';
+
+    function getEffectiveClientId() {
+      const stored = (localStorage.getItem(CLIENT_ID_STORAGE_KEY) || '').trim();
+      if (stored) return stored;
+      return DEFAULT_CLIENT_ID.trim();
+    }
+
+    let tokenClient = null;
+
     function authorizeUser(userData) {
       const email = (userData.email || '').trim().toLowerCase();
       if (email === AUTHORIZED_EMAIL.toLowerCase()) {
@@ -2469,9 +2480,23 @@
         checkAcademicYearRollover();
         return true;
       } else {
-        showLoginError(`Access Denied: Signed in as "${userData.email}". Only ${AUTHORIZED_EMAIL} is authorized to access TreasTrack. Please switch to the official society account.`);
         if (window.google?.accounts?.id) {
           window.google.accounts.id.disableAutoSelect();
+        }
+        loginErrorMsg.innerHTML = `
+          <div style="font-weight: 600; margin-bottom: 4px;">Access Denied</div>
+          <div style="font-size: 0.82rem; margin-bottom: 10px; line-height: 1.4;">
+            Signed in as <strong>${escapeHtml(userData.email)}</strong>.<br>
+            TreasTrack is strictly restricted to <strong>${escapeHtml(AUTHORIZED_EMAIL)}</strong>.
+          </div>
+          <button type="button" id="switchGoogleAccountBtn" class="btn-primary btn-sm" style="font-size: 0.8rem; padding: 6px 14px; cursor: pointer;">
+            Switch to ${escapeHtml(AUTHORIZED_EMAIL)}
+          </button>
+        `;
+        loginErrorMsg.style.display = 'block';
+        const switchBtn = document.getElementById('switchGoogleAccountBtn');
+        if (switchBtn) {
+          switchBtn.addEventListener('click', triggerGoogleSignIn);
         }
         return false;
       }
@@ -2492,6 +2517,23 @@
         name: payload.name || 'BTS Treasurer',
         sub: payload.sub
       });
+    }
+
+    function triggerGoogleSignIn() {
+      clearLoginError();
+      const clientId = getEffectiveClientId();
+      if (!clientId) {
+        openClientIdModal();
+        return;
+      }
+      if (tokenClient) {
+        // Explicitly forces the Google account chooser to show all signed-in accounts!
+        tokenClient.requestAccessToken({ prompt: 'select_account', hint: AUTHORIZED_EMAIL });
+      } else if (window.google?.accounts?.id) {
+        window.google.accounts.id.prompt();
+      } else {
+        showLoginError('Google Identity Services is still loading. Please check your connection or use Dev / Local Sign In.');
+      }
     }
 
     function signOut() {
@@ -2515,7 +2557,7 @@
     });
 
     function openClientIdModal() {
-      googleClientIdInput.value = localStorage.getItem(CLIENT_ID_STORAGE_KEY) || '';
+      googleClientIdInput.value = localStorage.getItem(CLIENT_ID_STORAGE_KEY) || DEFAULT_CLIENT_ID;
       clientIdModalBackdrop.classList.add('open');
       googleClientIdInput.focus();
     }
@@ -2525,7 +2567,7 @@
     }
 
     function initGoogleAuth() {
-      const clientId = (localStorage.getItem(CLIENT_ID_STORAGE_KEY) || '').trim();
+      const clientId = getEffectiveClientId();
       const gSignInBtn = document.getElementById('gSignInBtn');
 
       if (!clientId) {
@@ -2539,27 +2581,68 @@
         return;
       }
 
-      if (window.google && window.google.accounts && window.google.accounts.id) {
+      if (window.google && window.google.accounts) {
         try {
-          window.google.accounts.id.initialize({
-            client_id: clientId,
-            callback: handleGoogleCredentialResponse,
-            error_callback: (err) => {
-              console.warn('GIS error:', err);
-              showLoginError('Google Sign-In error: ' + (err.message || err.type || 'Please verify that https://charliedvs.github.io is added to Authorized JavaScript origins in Google Cloud Console.'));
-            },
-            auto_select: false
-          });
-          gSignInBtn.innerHTML = '';
-          window.google.accounts.id.renderButton(gSignInBtn, {
-            theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'filled_black' : 'outline',
-            size: 'large',
-            type: 'standard',
-            shape: 'rectangular',
-            text: 'signin_with',
-            logo_alignment: 'left',
-            width: 320
-          });
+          // 1. Initialize OAuth2 Token Client with account selection & hint
+          if (window.google.accounts.oauth2) {
+            tokenClient = window.google.accounts.oauth2.initTokenClient({
+              client_id: clientId,
+              scope: 'openid profile email https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
+              prompt: 'select_account',
+              hint: AUTHORIZED_EMAIL,
+              callback: async (tokenResponse) => {
+                if (tokenResponse.error) {
+                  if (tokenResponse.error !== 'popup_closed_by_user') {
+                    showLoginError('Google Sign-In error: ' + (tokenResponse.error_description || tokenResponse.error));
+                  }
+                  return;
+                }
+                try {
+                  const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                    headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
+                  });
+                  if (!res.ok) throw new Error('HTTP ' + res.status);
+                  const profile = await res.json();
+                  authorizeUser({
+                    email: profile.email,
+                    name: profile.name || 'BTS Treasurer',
+                    picture: profile.picture
+                  });
+                } catch (err) {
+                  showLoginError('Failed to retrieve user profile from Google: ' + err.message);
+                }
+              }
+            });
+          }
+
+          // 2. Also initialize Google ID services with hint
+          if (window.google.accounts.id) {
+            window.google.accounts.id.initialize({
+              client_id: clientId,
+              callback: handleGoogleCredentialResponse,
+              login_hint: AUTHORIZED_EMAIL,
+              auto_select: false,
+              cancel_on_tap_outside: true,
+              error_callback: (err) => {
+                console.warn('GIS error:', err);
+              }
+            });
+          }
+
+          // 3. Render reliable custom Google Sign-In button
+          gSignInBtn.innerHTML = `
+            <button type="button" id="googleCustomSignInBtn" class="btn-primary" style="display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; max-width: 320px; padding: 11px 18px; font-size: 0.92rem; font-weight: 600; border-radius: 4px; background: var(--surface); color: var(--text-main); border: 1px solid var(--border-color); cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.08); transition: background 0.15s ease, border-color 0.15s ease;">
+              <svg width="18" height="18" viewBox="0 0 18 18">
+                <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.616z"/>
+                <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/>
+                <path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.347 2.825.957 4.039l3.007-2.332z"/>
+                <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z"/>
+              </svg>
+              <span>Sign in with Google</span>
+            </button>
+          `;
+          const customBtn = document.getElementById('googleCustomSignInBtn');
+          if (customBtn) customBtn.addEventListener('click', triggerGoogleSignIn);
         } catch (err) {
           console.warn('GIS init error:', err);
           gSignInBtn.innerHTML = `<div style="font-size: 0.8rem; color: var(--danger-text); padding: 8px;">Google Sign-In error: ${escapeHtml(err.message)}</div>`;
@@ -2843,7 +2926,9 @@
     if (initialUser && initialUser.email && initialUser.email.toLowerCase() === AUTHORIZED_EMAIL.toLowerCase()) {
       authorizeUser(initialUser);
     } else {
-      signOut();
+      appContainer.style.display = 'none';
+      loginOverlay.style.display = 'flex';
+      clearLoginError();
     }
     initGoogleAuth();
 
