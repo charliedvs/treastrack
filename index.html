@@ -94,7 +94,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 60px 20px 40px 20px;
+      padding: 60px 20px 48px 20px;
       transition: background-color 0.18s ease, color 0.18s ease;
     }
 
@@ -759,6 +759,24 @@
       border-color: var(--danger-border);
       background-color: var(--danger-bg);
     }
+
+    /* Muted out-of-the-way bottom credit */
+    .window-credit {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      text-align: center;
+      padding: 10px 16px;
+      font-size: 0.73rem;
+      letter-spacing: 0.015em;
+      color: var(--text-muted);
+      opacity: 0.65;
+      pointer-events: none;
+      z-index: 1050;
+      user-select: none;
+      transition: color 0.18s ease;
+    }
   </style>
 </head>
 <body>
@@ -989,6 +1007,9 @@
   </div>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <!-- Bottom Window Muted Credit -->
+  <footer class="window-credit" aria-label="Site credits">Brought to you by Gemini and Charlie Davis</footer>
 
   <script>
     // Configure PDF.js worker
