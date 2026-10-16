@@ -94,7 +94,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 40px 20px;
+      padding: 60px 20px 40px 20px;
       transition: background-color 0.18s ease, color 0.18s ease;
     }
 
@@ -690,77 +690,74 @@
       color: var(--text-main);
     }
 
-    /* Authenticated User Pill in Header */
+    /* Top Navigation Bar: Settings Cog (top left) & Login Status (top right) */
+    .top-nav-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 24px;
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    .top-nav-bar > * {
+      pointer-events: auto;
+    }
+
+    .settings-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      border: 1px solid var(--border-color);
+      background-color: var(--surface);
+      color: var(--text-main);
+      box-shadow: var(--card-shadow);
+      cursor: pointer;
+      border-radius: 0;
+      transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    }
+
+    .settings-btn:hover {
+      background-color: var(--surface-light);
+      border-color: var(--border-focus);
+    }
+
+    /* Authenticated User Pill in Top Right Corner */
     .user-pill {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      padding: 4px 10px;
+      gap: 12px;
+      padding: 6px 12px;
       font-size: 0.8rem;
       border: 1px solid var(--border-color);
-      background-color: var(--surface-light);
-      color: var(--text-main);
-    }
-
-    .btn-signout {
-      background: none;
-      border: none;
-      color: var(--text-muted);
-      font-size: 1.1rem;
-      line-height: 1;
-      cursor: pointer;
-      padding: 0 2px;
-    }
-
-    .btn-signout:hover {
-      color: var(--danger-text);
-    }
-
-    /* Academic Year Rollover Banner */
-    .rollover-banner {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      padding: 12px 16px;
-      background-color: var(--surface-light);
-      border: 1px solid var(--border-color);
-      margin-bottom: 24px;
-      font-size: 0.86rem;
-      line-height: 1.4;
-    }
-
-    .handover-info-card,
-    .handover-stats-card {
-      padding: 12px 14px;
-      background-color: var(--surface-light);
-      border: 1px solid var(--border-color);
-      margin-bottom: 12px;
-      font-size: 0.86rem;
-    }
-
-    .handover-year-title {
-      font-weight: 600;
-      font-size: 1rem;
-    }
-
-    .archived-years-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-top: 8px;
-      max-height: 160px;
-      overflow-y: auto;
-    }
-
-    .archive-item-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 8px 10px;
-      border: 1px solid var(--border-color);
       background-color: var(--surface);
-      font-size: 0.82rem;
+      color: var(--text-main);
+      box-shadow: var(--card-shadow);
+    }
+
+    .btn-logout {
+      background: var(--surface-light);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      font-size: 0.76rem;
+      font-weight: 500;
+      padding: 3px 8px;
+      cursor: pointer;
+      border-radius: 0;
+      transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+    }
+
+    .btn-logout:hover {
+      color: var(--danger-text);
+      border-color: var(--danger-border);
+      background-color: var(--danger-bg);
     }
   </style>
 </head>
@@ -795,45 +792,27 @@
   </div>
 
   <div id="appContainer" style="display: none;">
+    <!-- Top Nav Bar: Settings Cog (top left) & Login Status (top right) -->
+    <div class="top-nav-bar">
+      <button type="button" id="openSettingsBtn" class="settings-btn" title="Settings (Appearance, Template, Google Automation)" aria-label="Settings">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+      </button>
+      <div id="userPillContainer" class="user-pill" title="Signed in as BTS Treasurer">
+        <span id="userPillEmail">treas@bts-crew.com</span>
+        <button type="button" id="signOutBtn" class="btn-logout" title="Sign out of TreasTrack">Sign Out</button>
+      </div>
+    </div>
+
     <div class="container">
       <header>
-        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-          <h1 style="margin: 0;">TreasTrack</h1>
-          <button type="button" id="academicYearBtn" class="btn-secondary btn-sm" title="View financial year rollover &amp; archives" style="font-size: 0.78rem; padding: 4px 8px; border-radius: 0;">
-            <span id="currentYearBadgeText">2026–2027</span> ▾
-          </button>
-        </div>
+        <h1>TreasTrack</h1>
         <div class="header-actions">
-          <input type="file" id="templateFileInput" class="file-input-hidden" accept=".pdf,application/pdf">
-          <button type="button" id="uploadTemplateBtn" class="btn-secondary theme-toggle-btn" title="No Finance Template PDF uploaded">
-            <span id="uploadTemplateText">Upload Template</span>
-          </button>
-          <button type="button" id="googleSetupBtn" class="btn-secondary theme-toggle-btn" title="Configure Google Drive &amp; Gmail automation">
-            <span id="googleSetupText">Google Setup</span>
-          </button>
-          <button id="themeToggleBtn" class="btn-secondary theme-toggle-btn" type="button" aria-label="Toggle theme">
-            <span id="themeToggleIcon" class="theme-icon" aria-hidden="true">☾</span>
-            <span id="themeToggleText">Dark</span>
-          </button>
           <button id="openModalBtn" class="btn-primary">Add Event</button>
-          <div id="userPillContainer" class="user-pill" title="Signed in as BTS Treasurer">
-            <span id="userPillEmail">treas@bts-crew.com</span>
-            <button type="button" id="signOutBtn" class="btn-signout" title="Sign out">&times;</button>
-          </div>
         </div>
       </header>
-
-      <!-- Academic Year Rollover Banner -->
-      <div id="rolloverBanner" class="rollover-banner" style="display: none;">
-        <div>
-          <strong>Financial Year Rollover (1st August):</strong>
-          <span id="rolloverBannerMsg">Welcome to the new academic year! Previous events have been safely archived.</span>
-        </div>
-        <div style="display: flex; gap: 8px;">
-          <button type="button" id="viewArchiveBannerBtn" class="btn-secondary btn-sm">View Archives</button>
-          <button type="button" id="dismissRolloverBannerBtn" class="btn-secondary btn-sm">&times;</button>
-        </div>
-      </div>
 
       <section class="events-section">
         <h2>Events</h2>
@@ -906,88 +885,77 @@
     </div>
   </div>
 
-  <!-- Google Drive & Gmail Automation Setup Modal -->
-  <div id="googleSetupModalBackdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="googleSetupModalTitle">
+  <!-- Settings Modal (Theme, Finance Template, Google Drive & Gmail) -->
+  <div id="settingsModalBackdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle">
     <div class="modal-dialog">
       <div class="modal-header">
-        <h2 id="googleSetupModalTitle">Google Drive &amp; Gmail Setup</h2>
-        <button id="closeGoogleSetupBtn" class="btn-close" type="button" aria-label="Close">&times;</button>
+        <h2 id="settingsModalTitle">Settings</h2>
+        <button id="closeSettingsModalBtn" class="btn-close" type="button" aria-label="Close">&times;</button>
       </div>
-      <form id="googleSetupForm" class="modal-body">
-        <div class="form-group">
-          <label for="appsScriptUrlInput">Apps Script Web App URL</label>
-          <input type="text" id="appsScriptUrlInput" placeholder="https://script.google.com/macros/s/.../exec">
-          <div class="field-hint">Must end in <strong>/exec</strong>, with "Execute as: Me" and "Who has access: Anyone".</div>
+      <div class="modal-body" style="display: flex; flex-direction: column; gap: 20px;">
+        
+        <!-- Theme Toggle -->
+        <div>
+          <div style="font-weight: 600; font-size: 0.88rem; margin-bottom: 8px;">Theme</div>
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background-color: var(--surface-light); border: 1px solid var(--border-color);">
+            <span style="font-size: 0.84rem;">Appearance mode</span>
+            <button id="themeToggleBtn" class="btn-secondary theme-toggle-btn" type="button" aria-label="Toggle theme">
+              <span id="themeToggleIcon" class="theme-icon" aria-hidden="true">☾</span>
+              <span id="themeToggleText">Dark</span>
+            </button>
+          </div>
         </div>
 
-        <div class="form-group">
-          <label for="parentDriveFolderInput">Parent Google Drive Folder Link or ID (Optional)</label>
-          <input type="text" id="parentDriveFolderInput" placeholder="https://drive.google.com/drive/folders/... or Folder ID">
-          <div class="field-hint">Event folders ("{Event Name}") will be created inside this Drive folder, with BF_{Event Name}.pdf saved inside.</div>
-        </div>
-
-        <div class="form-group" style="margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border-color);">
-          <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
-            <span style="font-size: 0.82rem; color: var(--text-muted);">Apps Script Setup &amp; Verification:</span>
-            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-              <button type="button" id="copyAppsScriptBtn" class="btn-secondary btn-sm">Copy Apps Script Code</button>
-              <button type="button" id="testAppsScriptBtn" class="btn-secondary btn-sm">Test Connection</button>
+        <!-- Finance Template PDF -->
+        <div>
+          <div style="font-weight: 600; font-size: 0.88rem; margin-bottom: 8px;">Finance Template PDF</div>
+          <div style="padding: 12px 14px; background-color: var(--surface-light); border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
+              <span id="templateStatusText" style="font-size: 0.82rem; color: var(--text-muted); word-break: break-all;">No Finance Template PDF uploaded</span>
+              <div>
+                <input type="file" id="templateFileInput" class="file-input-hidden" accept=".pdf,application/pdf">
+                <button type="button" id="uploadTemplateBtn" class="btn-secondary btn-sm" title="Upload official BTS Blue Form PDF">
+                  <span id="uploadTemplateText">Upload Template</span>
+                </button>
+              </div>
+            </div>
+            <div style="font-size: 0.78rem; color: var(--text-muted); line-height: 1.4;">
+              Upload the BTS Blue Form PDF template once. It is saved in your browser storage and used to auto-generate Blue Forms.
             </div>
           </div>
-          <div id="googleTestStatus" class="field-hint" style="margin-top: 8px; white-space: pre-line;"></div>
         </div>
 
-        <div class="modal-actions">
-          <button type="button" id="cancelGoogleSetupBtn" class="btn-secondary">Cancel</button>
-          <div class="modal-actions-right">
-            <button type="submit" class="btn-primary">Save Settings</button>
-          </div>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Treasurer Handover & Academic Year Archives Modal -->
-  <div id="handoverModalBackdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="handoverModalTitle">
-    <div class="modal-dialog">
-      <div class="modal-header">
-        <h2 id="handoverModalTitle">Treasurer Handover &amp; Archives</h2>
-        <button id="closeHandoverModalBtn" class="btn-close" type="button" aria-label="Close">&times;</button>
-      </div>
-      <div class="modal-body">
-        <div class="handover-info-card">
-          <div class="handover-year-title">Current Financial Year: <span id="modalCurrentYearDisplay">2026–2027</span></div>
-          <div style="font-size: 0.82rem; color: var(--text-muted); margin-top: 4px; line-height: 1.4;">
-            Financial years run from <strong>1st August</strong> to <strong>31st July</strong>. TreasTrack automatically archives events from the concluding year on 1st August and resets the workspace for the incoming treasurer.
-          </div>
-        </div>
-
-        <div class="handover-stats-card">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <span style="font-weight: 600;">Active Events:</span>
-            <span id="modalActiveEventsCount" style="font-weight: bold;">0</span>
-          </div>
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span style="font-weight: 600;">Total Charged:</span>
-            <span id="modalActiveTotalCharge" style="font-weight: bold;">£0.00</span>
-          </div>
-        </div>
-
-        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;">
-          <button type="button" id="exportYearBackupBtn" class="btn-secondary" style="flex: 1; min-width: 160px;">📥 Download Year Backup</button>
-          <button type="button" id="manualRolloverBtn" class="btn-secondary" style="flex: 1; min-width: 160px;" title="Archive active events and start next year">📦 Trigger Handover Now</button>
-        </div>
-
+        <!-- Google Drive & Gmail Setup -->
         <div>
-          <div style="font-weight: 600; font-size: 0.88rem; margin-bottom: 6px;">Archived Financial Years:</div>
-          <div id="archivedYearsList" class="archived-years-list">
-            <div id="noArchivesMsg" style="font-size: 0.82rem; color: var(--text-muted); padding: 8px 0;">No archived years yet. Previous years will appear here after 1st August rollover.</div>
-          </div>
+          <div style="font-weight: 600; font-size: 0.88rem; margin-bottom: 8px;">Google Drive &amp; Gmail Automation</div>
+          <form id="googleSetupForm" style="display: flex; flex-direction: column; gap: 12px;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label for="appsScriptUrlInput" style="font-size: 0.8rem; color: var(--text-muted);">Apps Script Web App URL</label>
+              <input type="text" id="appsScriptUrlInput" placeholder="https://script.google.com/macros/s/.../exec">
+              <div class="field-hint">Must end in <strong>/exec</strong>, with "Execute as: Me" and "Who has access: Anyone".</div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+              <label for="parentDriveFolderInput" style="font-size: 0.8rem; color: var(--text-muted);">Parent Google Drive Folder Link or ID (Optional)</label>
+              <input type="text" id="parentDriveFolderInput" placeholder="https://drive.google.com/drive/folders/... or Folder ID">
+              <div class="field-hint">Event folders will be created inside this Drive folder with BF_{Event Name}.pdf saved inside.</div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; padding-top: 4px;">
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button type="button" id="copyAppsScriptBtn" class="btn-secondary btn-sm">Copy Script Code</button>
+                <button type="button" id="testAppsScriptBtn" class="btn-secondary btn-sm">Test Connection</button>
+              </div>
+              <button type="submit" class="btn-primary btn-sm">Save Google Settings</button>
+            </div>
+            <div id="googleTestStatus" class="field-hint" style="white-space: pre-line;"></div>
+          </form>
         </div>
 
-        <div class="modal-actions" style="margin-top: 20px;">
-          <button type="button" id="closeHandoverBottomBtn" class="btn-secondary">Close</button>
+        <div class="modal-actions" style="margin-top: 4px; padding-top: 14px; border-top: 1px solid var(--border-color);">
+          <button type="button" id="closeSettingsBottomBtn" class="btn-secondary">Close</button>
         </div>
+
       </div>
     </div>
   </div>
@@ -1867,8 +1835,12 @@
       templatePdfName = name;
       try {
         await inspectTemplatePdf(buffer);
-        uploadTemplateText.textContent = '✓ Template';
+        uploadTemplateText.textContent = 'Change Template';
         uploadTemplateBtn.title = `Loaded: ${name} (click to replace)`;
+        if (templateStatusText) {
+          templateStatusText.textContent = `✓ Template loaded: ${name}`;
+          templateStatusText.style.color = 'var(--text-main)';
+        }
         if (save) {
           await savePdfToDb('finance_template', name, buffer);
           showToast(`Finance Template "${name}" saved.`);
@@ -1877,6 +1849,10 @@
         console.error('Failed to read template PDF:', err);
         uploadTemplateText.textContent = 'Upload Template';
         uploadTemplateBtn.title = 'Error reading PDF file';
+        if (templateStatusText) {
+          templateStatusText.textContent = 'Error reading Template PDF file';
+          templateStatusText.style.color = 'var(--danger-text)';
+        }
         showToast('Error reading Template PDF file.');
       }
     }
@@ -1897,12 +1873,15 @@
       }
     })();
 
-    // Google Setup Modal & Apps Script Code Helper
-    const googleSetupBtn = document.getElementById('googleSetupBtn');
-    const googleSetupText = document.getElementById('googleSetupText');
-    const googleSetupModalBackdrop = document.getElementById('googleSetupModalBackdrop');
-    const closeGoogleSetupBtn = document.getElementById('closeGoogleSetupBtn');
-    const cancelGoogleSetupBtn = document.getElementById('cancelGoogleSetupBtn');
+    // ==========================================
+    // 5. Settings Modal & Google Automation
+    // ==========================================
+    const openSettingsBtn = document.getElementById('openSettingsBtn');
+    const settingsModalBackdrop = document.getElementById('settingsModalBackdrop');
+    const closeSettingsModalBtn = document.getElementById('closeSettingsModalBtn');
+    const closeSettingsBottomBtn = document.getElementById('closeSettingsBottomBtn');
+    const templateStatusText = document.getElementById('templateStatusText');
+
     const googleSetupForm = document.getElementById('googleSetupForm');
     const appsScriptUrlInput = document.getElementById('appsScriptUrlInput');
     const parentDriveFolderInput = document.getElementById('parentDriveFolderInput');
@@ -2020,36 +1999,31 @@
       '}'
     ].join('\n');
 
-    function updateGoogleSetupButtonStatus() {
-      const savedUrl = (localStorage.getItem('treastrack_apps_script_url') || '').trim();
-      if (savedUrl) {
-        googleSetupText.textContent = '✓ Google';
-        googleSetupBtn.title = 'Google Drive & Gmail connected (click to edit settings)';
-      } else {
-        googleSetupText.textContent = 'Google Setup';
-        googleSetupBtn.title = 'Configure Google Drive & Gmail automation';
-      }
-    }
-
-    function openGoogleSetupModal() {
+    function openSettingsModal() {
       appsScriptUrlInput.value = localStorage.getItem('treastrack_apps_script_url') || '';
       parentDriveFolderInput.value = localStorage.getItem('treastrack_parent_drive_folder') || '';
       googleTestStatus.textContent = '';
-      googleSetupModalBackdrop.classList.add('open');
-      appsScriptUrlInput.focus();
+      if (templatePdfName) {
+        templateStatusText.textContent = `✓ Template loaded: ${templatePdfName}`;
+        templateStatusText.style.color = 'var(--text-main)';
+      } else {
+        templateStatusText.textContent = 'No Finance Template PDF uploaded';
+        templateStatusText.style.color = 'var(--text-muted)';
+      }
+      settingsModalBackdrop.classList.add('open');
     }
 
-    function closeGoogleSetupModal() {
-      googleSetupModalBackdrop.classList.remove('open');
+    function closeSettingsModal() {
+      settingsModalBackdrop.classList.remove('open');
     }
 
-    googleSetupBtn.addEventListener('click', openGoogleSetupModal);
-    closeGoogleSetupBtn.addEventListener('click', closeGoogleSetupModal);
-    cancelGoogleSetupBtn.addEventListener('click', closeGoogleSetupModal);
+    openSettingsBtn.addEventListener('click', openSettingsModal);
+    closeSettingsModalBtn.addEventListener('click', closeSettingsModal);
+    closeSettingsBottomBtn.addEventListener('click', closeSettingsModal);
 
-    googleSetupModalBackdrop.addEventListener('click', (e) => {
-      if (e.target === googleSetupModalBackdrop) {
-        closeGoogleSetupModal();
+    settingsModalBackdrop.addEventListener('click', (e) => {
+      if (e.target === settingsModalBackdrop) {
+        closeSettingsModal();
       }
     });
 
@@ -2092,13 +2066,11 @@
       try {
         localStorage.setItem('treastrack_apps_script_url', appsScriptUrlInput.value.trim());
         localStorage.setItem('treastrack_parent_drive_folder', parentDriveFolderInput.value.trim());
-      } catch (err) {}
-      updateGoogleSetupButtonStatus();
-      closeGoogleSetupModal();
-      showToast('Google Drive & Gmail settings saved.');
+        showToast('Google Drive & Gmail settings saved.');
+      } catch (err) {
+        showToast('Failed to save settings.');
+      }
     });
-
-    updateGoogleSetupButtonStatus();
 
     // ==========================================
     // 6. Events State, Sorting, Rendering & Modal
@@ -2346,8 +2318,7 @@
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         if (modalBackdrop.classList.contains('open')) closeModal();
-        if (googleSetupModalBackdrop.classList.contains('open')) closeGoogleSetupModal();
-        if (handoverModalBackdrop && handoverModalBackdrop.classList.contains('open')) closeHandoverModal();
+        if (settingsModalBackdrop && settingsModalBackdrop.classList.contains('open')) closeSettingsModal();
         if (clientIdModalBackdrop && clientIdModalBackdrop.classList.contains('open')) closeClientIdModal();
       }
     });
@@ -2477,7 +2448,6 @@
         loginOverlay.style.display = 'none';
         appContainer.style.display = 'block';
         showToast(`Signed in as ${userData.email}`);
-        checkAcademicYearRollover();
         return true;
       } else {
         if (window.google?.accounts?.id) {
@@ -2682,243 +2652,6 @@
       }
       closeClientIdModal();
       initGoogleAuth();
-    });
-
-    // ==========================================
-    // Academic Year Rollover & Handover System
-    // ==========================================
-    const ACADEMIC_YEAR_KEY = 'treastrack_academic_year';
-    const ARCHIVES_INDEX_KEY = 'treastrack_archives_index';
-
-    const academicYearBtn = document.getElementById('academicYearBtn');
-    const currentYearBadgeText = document.getElementById('currentYearBadgeText');
-    const rolloverBanner = document.getElementById('rolloverBanner');
-    const rolloverBannerMsg = document.getElementById('rolloverBannerMsg');
-    const viewArchiveBannerBtn = document.getElementById('viewArchiveBannerBtn');
-    const dismissRolloverBannerBtn = document.getElementById('dismissRolloverBannerBtn');
-
-    const handoverModalBackdrop = document.getElementById('handoverModalBackdrop');
-    const closeHandoverModalBtn = document.getElementById('closeHandoverModalBtn');
-    const closeHandoverBottomBtn = document.getElementById('closeHandoverBottomBtn');
-    const modalCurrentYearDisplay = document.getElementById('modalCurrentYearDisplay');
-    const modalActiveEventsCount = document.getElementById('modalActiveEventsCount');
-    const modalActiveTotalCharge = document.getElementById('modalActiveTotalCharge');
-    const exportYearBackupBtn = document.getElementById('exportYearBackupBtn');
-    const manualRolloverBtn = document.getElementById('manualRolloverBtn');
-    const archivedYearsList = document.getElementById('archivedYearsList');
-
-    function getCurrentAcademicYear(date = new Date()) {
-      const year = date.getFullYear();
-      const month = date.getMonth(); // 0-indexed: 0 = Jan, 7 = Aug
-      if (month >= 7) {
-        return `${year}–${year + 1}`;
-      } else {
-        return `${year - 1}–${year}`;
-      }
-    }
-
-    function getArchivedYearsIndex() {
-      try {
-        const raw = localStorage.getItem(ARCHIVES_INDEX_KEY);
-        return raw ? JSON.parse(raw) : [];
-      } catch (e) {
-        return [];
-      }
-    }
-
-    function saveArchivedYearsIndex(index) {
-      try {
-        localStorage.setItem(ARCHIVES_INDEX_KEY, JSON.stringify(index));
-      } catch (e) {}
-    }
-
-    function performAcademicYearRollover(oldYear, newYear, isAutomatic = false) {
-      const currentEventsBackup = [...events];
-      const totalCharge = currentEventsBackup.reduce((sum, ev) => sum + (parseFloat(ev.charge) || 0), 0);
-
-      try {
-        localStorage.setItem(`treastrack_archive_${oldYear}`, JSON.stringify(currentEventsBackup));
-      } catch (e) {
-        console.error('Failed to store archive for', oldYear, e);
-      }
-
-      const index = getArchivedYearsIndex().filter(item => item.year !== oldYear);
-      index.unshift({
-        year: oldYear,
-        archivedAt: new Date().toISOString(),
-        eventCount: currentEventsBackup.length,
-        totalCharge: totalCharge.toFixed(2),
-        autoRollover: isAutomatic
-      });
-      saveArchivedYearsIndex(index);
-
-      // Reset active events workspace for incoming treasurer
-      events = [];
-      saveEvents();
-      renderEvents();
-
-      localStorage.setItem(ACADEMIC_YEAR_KEY, newYear);
-      currentYearBadgeText.textContent = newYear;
-
-      rolloverBannerMsg.textContent = `Welcome to the ${newYear} financial year! ${currentEventsBackup.length} events from ${oldYear} have been safely archived, and the active workspace has been reset for the incoming treasurer.`;
-      rolloverBanner.style.display = 'flex';
-      showToast(`Rollover complete: Archived ${oldYear} (${currentEventsBackup.length} events). Active workspace reset for ${newYear}.`, 6000);
-    }
-
-    function checkAcademicYearRollover() {
-      const currentYear = getCurrentAcademicYear();
-      currentYearBadgeText.textContent = currentYear;
-      modalCurrentYearDisplay.textContent = currentYear;
-
-      let storedYear = localStorage.getItem(ACADEMIC_YEAR_KEY);
-      if (!storedYear) {
-        localStorage.setItem(ACADEMIC_YEAR_KEY, currentYear);
-        return;
-      }
-
-      if (storedYear !== currentYear) {
-        performAcademicYearRollover(storedYear, currentYear, /* isAutomatic= */ true);
-      }
-    }
-
-    function updateHandoverModalStats() {
-      const currentYear = getCurrentAcademicYear();
-      modalCurrentYearDisplay.textContent = currentYear;
-      modalActiveEventsCount.textContent = events.length;
-      const total = events.reduce((sum, ev) => sum + (parseFloat(ev.charge) || 0), 0);
-      modalActiveTotalCharge.textContent = `£${total.toFixed(2)}`;
-
-      const archives = getArchivedYearsIndex();
-      if (archives.length === 0) {
-        archivedYearsList.innerHTML = `<div id="noArchivesMsg" style="font-size: 0.82rem; color: var(--text-muted); padding: 8px 0;">No archived years yet. Previous years will appear here after 1st August rollover.</div>`;
-      } else {
-        archivedYearsList.innerHTML = '';
-        archives.forEach(arch => {
-          const row = document.createElement('div');
-          row.className = 'archive-item-row';
-          const formattedDate = arch.archivedAt ? new Date(arch.archivedAt).toLocaleDateString('en-GB') : '';
-          row.innerHTML = `
-            <div>
-              <strong>${escapeHtml(arch.year)}</strong>
-              <span style="color: var(--text-muted); margin-left: 8px; font-size: 0.78rem;">${arch.eventCount} events • £${arch.totalCharge || '0.00'}${formattedDate ? ' • Archived ' + formattedDate : ''}</span>
-            </div>
-            <div style="display: flex; gap: 6px;">
-              <button type="button" class="btn-secondary btn-sm btn-download-archive" data-year="${escapeHtml(arch.year)}" title="Download archive JSON">📥 Download</button>
-              <button type="button" class="btn-secondary btn-sm btn-restore-archive" data-year="${escapeHtml(arch.year)}" title="Restore this year's events into current view">Restore</button>
-            </div>
-          `;
-          archivedYearsList.appendChild(row);
-        });
-
-        archivedYearsList.querySelectorAll('.btn-download-archive').forEach(btn => {
-          btn.addEventListener('click', (e) => {
-            const year = e.currentTarget.getAttribute('data-year');
-            downloadArchiveJson(year);
-          });
-        });
-
-        archivedYearsList.querySelectorAll('.btn-restore-archive').forEach(btn => {
-          btn.addEventListener('click', (e) => {
-            const year = e.currentTarget.getAttribute('data-year');
-            restoreArchive(year);
-          });
-        });
-      }
-    }
-
-    function downloadArchiveJson(year) {
-      try {
-        const raw = localStorage.getItem(`treastrack_archive_${year}`);
-        if (!raw) {
-          alert(`No archive data found for ${year}.`);
-          return;
-        }
-        const blob = new Blob([raw], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `TreasTrack_${year}_Archive.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-        showToast(`Downloaded ${year} archive backup.`);
-      } catch (err) {
-        alert('Failed to download archive: ' + err.message);
-      }
-    }
-
-    function restoreArchive(year) {
-      const confirmed = confirm(`Are you sure you want to restore the archived events from ${year} into the active workspace? This will replace your current active events.`);
-      if (!confirmed) return;
-
-      try {
-        const raw = localStorage.getItem(`treastrack_archive_${year}`);
-        if (!raw) {
-          alert(`No archive data found for ${year}.`);
-          return;
-        }
-        events = JSON.parse(raw);
-        saveEvents();
-        renderEvents();
-        closeHandoverModal();
-        showToast(`Restored ${events.length} events from ${year}.`);
-      } catch (err) {
-        alert('Failed to restore archive: ' + err.message);
-      }
-    }
-
-    function downloadActiveYearBackup() {
-      const currentYear = getCurrentAcademicYear();
-      const data = {
-        academicYear: currentYear,
-        exportedAt: new Date().toISOString(),
-        events: events
-      };
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `TreasTrack_${currentYear}_Active_Backup.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-      showToast(`Downloaded active events backup for ${currentYear}.`);
-    }
-
-    function openHandoverModal() {
-      updateHandoverModalStats();
-      handoverModalBackdrop.classList.add('open');
-    }
-
-    function closeHandoverModal() {
-      handoverModalBackdrop.classList.remove('open');
-    }
-
-    academicYearBtn.addEventListener('click', openHandoverModal);
-    viewArchiveBannerBtn.addEventListener('click', openHandoverModal);
-    dismissRolloverBannerBtn.addEventListener('click', () => {
-      rolloverBanner.style.display = 'none';
-    });
-    closeHandoverModalBtn.addEventListener('click', closeHandoverModal);
-    closeHandoverBottomBtn.addEventListener('click', closeHandoverModal);
-    handoverModalBackdrop.addEventListener('click', (e) => {
-      if (e.target === handoverModalBackdrop) closeHandoverModal();
-    });
-
-    exportYearBackupBtn.addEventListener('click', downloadActiveYearBackup);
-
-    manualRolloverBtn.addEventListener('click', () => {
-      const currentYear = getCurrentAcademicYear();
-      const nextYearParts = currentYear.split('–').map(Number);
-      const suggestedNextYear = !isNaN(nextYearParts[0]) ? `${nextYearParts[0] + 1}–${nextYearParts[1] + 1}` : 'New Year';
-
-      const confirmMsg = `Handover / Year Reset Confirmation:\n\n` +
-        `This will archive all currently active events (${events.length} events) under "${currentYear}" ` +
-        `and reset the active workspace for the incoming treasurer (${suggestedNextYear}).\n\n` +
-        `Are you sure you want to proceed?`;
-
-      if (confirm(confirmMsg)) {
-        performAcademicYearRollover(currentYear, suggestedNextYear, /* isAutomatic= */ false);
-        updateHandoverModalStats();
-      }
     });
 
     // Check existing authentication state & initialize
