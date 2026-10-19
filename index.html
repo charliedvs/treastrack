@@ -947,11 +947,13 @@
         <div>
           <div style="font-weight: 600; font-size: 0.88rem; margin-bottom: 8px;">Google Drive &amp; Gmail Automation</div>
           <form id="googleSetupForm" style="display: flex; flex-direction: column; gap: 12px;">
-            <div class="form-group" style="margin-bottom: 0;">
-              <label for="appsScriptUrlInput" style="font-size: 0.8rem; color: var(--text-muted);">Apps Script Web App URL</label>
-              <input type="text" id="appsScriptUrlInput" placeholder="https://script.google.com/macros/s/.../exec">
-              <div class="field-hint">Must end in <strong>/exec</strong>, with "Execute as: Me" and "Who has access: Anyone".</div>
+            <div style="padding: 10px 14px; background-color: var(--surface-light); border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
+              <div style="font-size: 0.8rem; color: var(--text-main);">
+                <strong>Backend Automation:</strong> Connected (Built-in)
+              </div>
+              <button type="button" id="testAppsScriptBtn" class="btn-secondary btn-sm" title="Test connection to Google Apps Script">Test Connection</button>
             </div>
+            <div id="googleTestStatus" class="field-hint" style="white-space: pre-line;"></div>
 
             <div class="form-group" style="margin-bottom: 0;">
               <label for="parentDriveFolderInput" style="font-size: 0.8rem; color: var(--text-muted);">Parent Google Drive Folder Link or ID (Optional)</label>
@@ -959,14 +961,9 @@
               <div class="field-hint">Event folders will be created inside this Drive folder with BF_{Event Name}.pdf saved inside.</div>
             </div>
 
-            <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; padding-top: 4px;">
-              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                <button type="button" id="copyAppsScriptBtn" class="btn-secondary btn-sm">Copy Script Code</button>
-                <button type="button" id="testAppsScriptBtn" class="btn-secondary btn-sm">Test Connection</button>
-              </div>
-              <button type="submit" class="btn-primary btn-sm">Save Google Settings</button>
+            <div style="display: flex; justify-content: flex-end; align-items: center; gap: 8px; padding-top: 4px;">
+              <button type="submit" class="btn-primary btn-sm">Save Drive Folder</button>
             </div>
-            <div id="googleTestStatus" class="field-hint" style="white-space: pre-line;"></div>
           </form>
         </div>
 
@@ -1845,13 +1842,11 @@
     // ==========================================
     // 5. PDF Upload & Google Setup UI
     // ==========================================
-    // Permanent built-in defaults for deployment across future treasurers:
-    const DEFAULT_APPS_SCRIPT_URL = '';
+    // Permanent built-in Apps Script Web App URL:
+    const DEFAULT_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxIP1hgWzv9Akt8jPdFe9aT3tFHi4t6ryX4H-kDHdnnqlO7S7VVMuHZKUX9CB4aBJ8q/exec';
     const DEFAULT_PARENT_DRIVE_FOLDER = '';
 
     function getEffectiveAppsScriptUrl() {
-      const stored = (localStorage.getItem('treastrack_apps_script_url') || '').trim();
-      if (stored) return stored;
       return DEFAULT_APPS_SCRIPT_URL.trim();
     }
 
@@ -1920,129 +1915,13 @@
     const templateStatusText = document.getElementById('templateStatusText');
 
     const googleSetupForm = document.getElementById('googleSetupForm');
-    const appsScriptUrlInput = document.getElementById('appsScriptUrlInput');
     const parentDriveFolderInput = document.getElementById('parentDriveFolderInput');
-    const copyAppsScriptBtn = document.getElementById('copyAppsScriptBtn');
     const testAppsScriptBtn = document.getElementById('testAppsScriptBtn');
     const googleTestStatus = document.getElementById('googleTestStatus');
 
-    const APPS_SCRIPT_SOURCE_CODE = [
-      'function doGet(e) {',
-      '  try {',
-      '    var rootName = DriveApp.getRootFolder().getName();',
-      '    var draftsCount = GmailApp.getDrafts().length;',
-      '    var hasAdvancedGmail = (typeof Gmail !== "undefined" && Boolean(Gmail.Users));',
-      '    var sig = getGmailSignatureHtml();',
-      '    var msg = [',
-      '      "✓ TreasTrack Google Apps Script is active and authorized!",',
-      '      "",',
-      '      "• Google Drive connected (Root: " + rootName + ")",',
-      '      "• Gmail connected (Current drafts: " + draftsCount + ")",',
-      '      "• Advanced Gmail API service enabled: " + (hasAdvancedGmail ? "Yes" : "No (optional)"),',
-      '      "• Default Gmail signature detected: " + (sig ? "Yes" : "No")',
-      '    ].join("\\n");',
-      '    return ContentService.createTextOutput(msg).setMimeType(ContentService.MimeType.TEXT);',
-      '  } catch (err) {',
-      '    return ContentService.createTextOutput("Error: " + (err && err.message ? err.message : String(err))).setMimeType(ContentService.MimeType.TEXT);',
-      '  }',
-      '}',
-      'function doPost(e) {',
-      '  try {',
-      '    var raw = (e && e.postData && e.postData.contents) ? e.postData.contents : "{}";',
-      '    var payload = JSON.parse(raw);',
-      '    var eventName = (payload.eventName || "Untitled Event").trim();',
-      '    var fileName = (payload.fileName || ("BF_" + eventName + ".pdf")).trim();',
-      '    var pdfBase64 = payload.pdfBase64 || "";',
-      '    var parentFolderId = extractFolderId(payload.parentFolderId || "");',
-      '    if (!pdfBase64) return jsonResponse({ success: false, error: "Missing PDF data." });',
-      '    var pdfBytes = Utilities.base64Decode(pdfBase64);',
-      '    var pdfBlob = Utilities.newBlob(pdfBytes, "application/pdf", fileName);',
-      '    var parentFolder = parentFolderId ? DriveApp.getFolderById(parentFolderId) : DriveApp.getRootFolder();',
-      '    var existing = parentFolder.getFoldersByName(eventName);',
-      '    var eventFolder = existing.hasNext() ? existing.next() : parentFolder.createFolder(eventName);',
-      '    var savedFile = eventFolder.createFile(pdfBlob);',
-      '    var subject = "Blue Form - " + eventName;',
-      '    var plainBody = "Hi,\\n\\nPlease find attached the Blue Form for " + eventName;',
-      '    var htmlBody = "<div style=\\"font-family: Arial, sans-serif; font-size: 14px; color: #222222;\\"><p>Hi,</p><p>Please find attached the Blue Form for " + escapeHtml(eventName) + "</p></div>";',
-      '    var sig = getGmailSignatureHtml();',
-      '    if (sig) htmlBody += "<br>" + sig;',
-      '    createGmailDraft(subject, plainBody, htmlBody, pdfBlob);',
-      '    return jsonResponse({ success: true, folderUrl: eventFolder.getUrl(), fileUrl: savedFile.getUrl() });',
-      '  } catch (err) {',
-      '    return jsonResponse({ success: false, error: err && err.message ? err.message : String(err) });',
-      '  }',
-      '}',
-      'function extractFolderId(input) {',
-      '  var str = String(input || "").trim();',
-      '  if (!str) return "";',
-      '  var fm = str.match(/\\/folders\\/([a-zA-Z0-9_-]+)/);',
-      '  if (fm) return fm[1];',
-      '  var m = str.match(/[-\\w]{25,}/);',
-      '  return m ? m[0] : str;',
-      '}',
-      'function getGmailSignatureHtml() {',
-      '  try {',
-      '    if (typeof Gmail !== "undefined" && Gmail.Users && Gmail.Users.Settings) {',
-      '      var res = Gmail.Users.Settings.SendAs.list("me");',
-      '      if (res && res.sendAs) {',
-      '        for (var i = 0; i < res.sendAs.length; i++) {',
-      '          if (res.sendAs[i].isDefault && res.sendAs[i].signature) return res.sendAs[i].signature;',
-      '        }',
-      '      }',
-      '    }',
-      '  } catch (e) {}',
-      '  return "";',
-      '}',
-      'function createGmailDraft(subject, plainBody, htmlBody, pdfBlob) {',
-      '  if (typeof Gmail !== "undefined" && Gmail.Users && Gmail.Users.Drafts) {',
-      '    try {',
-      '      var boundary = "treastrack_" + Utilities.getUuid();',
-      '      var safeName = pdfBlob.getName().replace(/"/g, "");',
-      '      var mime = [',
-      '        "MIME-Version: 1.0",',
-      '        "Subject: =?UTF-8?B?" + Utilities.base64Encode(subject, Utilities.Charset.UTF_8) + "?=",',
-      '        "Content-Type: multipart/mixed; boundary=\\"" + boundary + "\\"",',
-      '        "",',
-      '        "--" + boundary,',
-      '        "Content-Type: text/html; charset=\\"UTF-8\\"",',
-      '        "Content-Transfer-Encoding: base64",',
-      '        "",',
-      '        Utilities.base64Encode(htmlBody, Utilities.Charset.UTF_8),',
-      '        "",',
-      '        "--" + boundary,',
-      '        "Content-Type: application/pdf; name=\\"" + safeName + "\\"",',
-      '        "Content-Disposition: attachment; filename=\\"" + safeName + "\\"",',
-      '        "Content-Transfer-Encoding: base64",',
-      '        "",',
-      '        Utilities.base64Encode(pdfBlob.getBytes()),',
-      '        "--" + boundary + "--"',
-      '      ].join("\\r\\n");',
-      '      Gmail.Users.Drafts.create({ message: { raw: Utilities.base64EncodeWebSafe(mime, Utilities.Charset.UTF_8) } }, "me");',
-      '      return;',
-      '    } catch (e) {}',
-      '  }',
-      '  try {',
-      '    GmailApp.createDraft("", subject, plainBody, { htmlBody: htmlBody, attachments: [pdfBlob] });',
-      '  } catch (err) {',
-      '    var fallback = Session.getActiveUser().getEmail() || "recipient@example.com";',
-      '    GmailApp.createDraft(fallback, subject, plainBody, { htmlBody: htmlBody, attachments: [pdfBlob] });',
-      '  }',
-      '}',
-      'function escapeHtml(s) {',
-      '  return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");',
-      '}',
-      'function jsonResponse(obj) {',
-      '  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);',
-      '}'
-    ].join('\n');
-
     function openSettingsModal() {
-      appsScriptUrlInput.value = localStorage.getItem('treastrack_apps_script_url') || DEFAULT_APPS_SCRIPT_URL;
       parentDriveFolderInput.value = localStorage.getItem('treastrack_parent_drive_folder') || DEFAULT_PARENT_DRIVE_FOLDER;
       googleTestStatus.textContent = '';
-      if (DEFAULT_APPS_SCRIPT_URL && !localStorage.getItem('treastrack_apps_script_url')) {
-        googleTestStatus.textContent = 'ℹ Using built-in default Apps Script URL.';
-      }
       if (templatePdfName) {
         templateStatusText.textContent = `✓ Template loaded: ${templatePdfName}`;
         templateStatusText.style.color = 'var(--text-main)';
@@ -2067,24 +1946,10 @@
       }
     });
 
-    copyAppsScriptBtn.addEventListener('click', async () => {
-      try {
-        await navigator.clipboard.writeText(APPS_SCRIPT_SOURCE_CODE);
-        showToast('Apps Script code copied to clipboard!');
-      } catch (err) {
-        showToast('See google-apps-script.js in your project folder for the code.');
-      }
-    });
-
     testAppsScriptBtn.addEventListener('click', async () => {
-      const url = appsScriptUrlInput.value.trim();
+      const url = getEffectiveAppsScriptUrl();
       if (!url) {
-        showToast('Please paste your Apps Script Web App URL first.');
-        appsScriptUrlInput.focus();
-        return;
-      }
-      if (!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec/i.test(url)) {
-        googleTestStatus.textContent = '✗ URL must start with https://script.google.com/macros/s/ and end with /exec';
+        googleTestStatus.textContent = '✗ No Apps Script URL configured.';
         return;
       }
       googleTestStatus.textContent = 'Testing connection to Google Apps Script...';
@@ -2095,29 +1960,22 @@
           credentials: 'omit'
         });
         googleTestStatus.textContent =
-          '✓ Web App URL is reachable! Make sure you clicked "Run" (on doGet) inside the Apps Script editor once to approve Drive & Gmail permissions.';
+          '✓ Google Apps Script backend automation is active and reachable!';
       } catch (err) {
-        googleTestStatus.textContent = '✗ Could not reach URL. Check your internet connection and Web App URL.';
+        googleTestStatus.textContent = '✗ Could not reach URL. Check your internet connection.';
       }
     });
 
     googleSetupForm.addEventListener('submit', (e) => {
       e.preventDefault();
       try {
-        const urlVal = appsScriptUrlInput.value.trim();
-        if (urlVal && urlVal !== DEFAULT_APPS_SCRIPT_URL) {
-          localStorage.setItem('treastrack_apps_script_url', urlVal);
-        } else {
-          localStorage.removeItem('treastrack_apps_script_url');
-        }
-
         const folderVal = parentDriveFolderInput.value.trim();
         if (folderVal && folderVal !== DEFAULT_PARENT_DRIVE_FOLDER) {
           localStorage.setItem('treastrack_parent_drive_folder', folderVal);
         } else {
           localStorage.removeItem('treastrack_parent_drive_folder');
         }
-        showToast('Google Drive & Gmail settings saved.');
+        showToast('Google Drive folder setting saved.');
       } catch (err) {
         showToast('Failed to save settings.');
       }
