@@ -45,6 +45,10 @@ function doGet(e) {
 function doPost(e) {
   try {
     var rawContents = (e && e.postData && e.postData.contents) ? e.postData.contents : '{}';
+    // Reject oversized payloads (>25MB) to prevent quota exhaustion or abuse
+    if (rawContents.length > 25 * 1024 * 1024) {
+      return jsonResponse({ success: false, error: 'Payload exceeds maximum limit (25MB).' });
+    }
     var payload = JSON.parse(rawContents);
     var eventName = (payload.eventName || 'Untitled Event').trim();
     var fileName = (payload.fileName || ('BF_' + eventName + '.pdf')).trim();
@@ -54,6 +58,13 @@ function doPost(e) {
     if (!pdfBase64) {
       return jsonResponse({ success: false, error: 'Missing PDF data.' });
     }
+    if (pdfBase64.length > 20 * 1024 * 1024) {
+      return jsonResponse({ success: false, error: 'PDF data exceeds maximum size limit (20MB).' });
+    }
+
+    // Sanitize eventName and fileName to prevent directory traversal or control characters
+    eventName = eventName.replace(/[\x00-\x1f\\/:*?"<>|]/g, '_').substring(0, 100).trim() || 'Untitled Event';
+    fileName = fileName.replace(/[\x00-\x1f\\/:*?"<>|]/g, '_').substring(0, 100).trim() || 'BF_Event.pdf';
 
     // 1. Decode the Blue Form PDF bytes
     var pdfBytes = Utilities.base64Decode(pdfBase64);

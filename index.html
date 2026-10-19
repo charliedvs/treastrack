@@ -4,11 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TreasTrack</title>
-  <!-- PDF-Lib for editing and filling PDF forms -->
-  <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
-  <!-- PDF.js for reading text & coordinates from uploaded PDFs -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+  <!-- PDF-Lib for editing and filling PDF forms (with Subresource Integrity) -->
+  <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js" integrity="sha384-weMABwrltA6jWR8DDe9Jp5blk+tZQh7ugpCsF3JwSA53WZM9/14PjS5LAJNHNjAI" crossorigin="anonymous"></script>
+  <!-- PDF.js for reading text & coordinates from uploaded PDFs (with Subresource Integrity) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" integrity="sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js" integrity="sha384-SnzOobpRMLXZ52iJvZm/C0fYw0OQemTXzTjIsdsfMcrCtCEe9qgzxTd3RSklO5x2" crossorigin="anonymous"></script>
   <!-- Google Identity Services (GIS) for Sign-In with Google -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
@@ -2308,10 +2308,20 @@
       }
     }
 
+    const AUTH_SESSION_DURATION_MS = 24 * 60 * 60 * 1000; // 24-hour maximum session lifetime
+
     function getStoredAuthUser() {
       try {
         const item = localStorage.getItem(AUTH_STORAGE_KEY);
-        return item ? JSON.parse(item) : null;
+        if (!item) return null;
+        const parsed = JSON.parse(item);
+        if (!parsed || !parsed.email) return null;
+        // Expire session after 24 hours to protect unattended or shared computers
+        if (parsed.savedAt && (Date.now() - parsed.savedAt > AUTH_SESSION_DURATION_MS)) {
+          localStorage.removeItem(AUTH_STORAGE_KEY);
+          return null;
+        }
+        return parsed;
       } catch (e) {
         return null;
       }
@@ -2320,7 +2330,8 @@
     function setStoredAuthUser(user) {
       try {
         if (user) {
-          localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
+          const authData = Object.assign({}, user, { savedAt: Date.now() });
+          localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
         } else {
           localStorage.removeItem(AUTH_STORAGE_KEY);
         }
@@ -2428,12 +2439,24 @@
 
     signOutBtn.addEventListener('click', signOut);
 
-    devSignInBtn.addEventListener('click', () => {
-      authorizeUser({
-        email: AUTHORIZED_EMAIL,
-        name: 'BTS Treasurer (Dev/Local)'
+    // Dev sign-in is strictly restricted to local testing/offline (localhost or file://)
+    const isLocalOffline = ['localhost', '127.0.0.1', ''].includes(window.location.hostname) || window.location.protocol === 'file:';
+    if (!isLocalOffline && devSignInBtn) {
+      devSignInBtn.style.display = 'none';
+    }
+
+    if (devSignInBtn) {
+      devSignInBtn.addEventListener('click', () => {
+        if (!isLocalOffline) {
+          showLoginError('Dev sign-in is disabled in production.');
+          return;
+        }
+        authorizeUser({
+          email: AUTHORIZED_EMAIL,
+          name: 'BTS Treasurer (Dev/Local)'
+        });
       });
-    });
+    }
 
     function openClientIdModal() {
       googleClientIdInput.value = localStorage.getItem(CLIENT_ID_STORAGE_KEY) || DEFAULT_CLIENT_ID;
