@@ -1779,12 +1779,12 @@
         document.body.removeChild(link);
         setTimeout(() => URL.revokeObjectURL(url), 5000);
 
-        const appsScriptUrl = (localStorage.getItem('treastrack_apps_script_url') || '').trim();
+        const appsScriptUrl = getEffectiveAppsScriptUrl();
         if (appsScriptUrl) {
           showToast(`Downloaded "${fileName}". Syncing to Google Drive & creating Gmail draft...`, 5000);
           await triggerGoogleDriveAndGmailAutomation({
             appsScriptUrl,
-            parentFolderId: (localStorage.getItem('treastrack_parent_drive_folder') || '').trim(),
+            parentFolderId: getEffectiveParentDriveFolder(),
             eventName,
             fileName,
             pdfBytes
@@ -1845,6 +1845,22 @@
     // ==========================================
     // 5. PDF Upload & Google Setup UI
     // ==========================================
+    // Permanent built-in defaults for deployment across future treasurers:
+    const DEFAULT_APPS_SCRIPT_URL = '';
+    const DEFAULT_PARENT_DRIVE_FOLDER = '';
+
+    function getEffectiveAppsScriptUrl() {
+      const stored = (localStorage.getItem('treastrack_apps_script_url') || '').trim();
+      if (stored) return stored;
+      return DEFAULT_APPS_SCRIPT_URL.trim();
+    }
+
+    function getEffectiveParentDriveFolder() {
+      const stored = (localStorage.getItem('treastrack_parent_drive_folder') || '').trim();
+      if (stored) return stored;
+      return DEFAULT_PARENT_DRIVE_FOLDER.trim();
+    }
+
     const templateFileInput = document.getElementById('templateFileInput');
     const uploadTemplateBtn = document.getElementById('uploadTemplateBtn');
     const uploadTemplateText = document.getElementById('uploadTemplateText');
@@ -2021,9 +2037,12 @@
     ].join('\n');
 
     function openSettingsModal() {
-      appsScriptUrlInput.value = localStorage.getItem('treastrack_apps_script_url') || '';
-      parentDriveFolderInput.value = localStorage.getItem('treastrack_parent_drive_folder') || '';
+      appsScriptUrlInput.value = localStorage.getItem('treastrack_apps_script_url') || DEFAULT_APPS_SCRIPT_URL;
+      parentDriveFolderInput.value = localStorage.getItem('treastrack_parent_drive_folder') || DEFAULT_PARENT_DRIVE_FOLDER;
       googleTestStatus.textContent = '';
+      if (DEFAULT_APPS_SCRIPT_URL && !localStorage.getItem('treastrack_apps_script_url')) {
+        googleTestStatus.textContent = 'ℹ Using built-in default Apps Script URL.';
+      }
       if (templatePdfName) {
         templateStatusText.textContent = `✓ Template loaded: ${templatePdfName}`;
         templateStatusText.style.color = 'var(--text-main)';
@@ -2085,8 +2104,19 @@
     googleSetupForm.addEventListener('submit', (e) => {
       e.preventDefault();
       try {
-        localStorage.setItem('treastrack_apps_script_url', appsScriptUrlInput.value.trim());
-        localStorage.setItem('treastrack_parent_drive_folder', parentDriveFolderInput.value.trim());
+        const urlVal = appsScriptUrlInput.value.trim();
+        if (urlVal && urlVal !== DEFAULT_APPS_SCRIPT_URL) {
+          localStorage.setItem('treastrack_apps_script_url', urlVal);
+        } else {
+          localStorage.removeItem('treastrack_apps_script_url');
+        }
+
+        const folderVal = parentDriveFolderInput.value.trim();
+        if (folderVal && folderVal !== DEFAULT_PARENT_DRIVE_FOLDER) {
+          localStorage.setItem('treastrack_parent_drive_folder', folderVal);
+        } else {
+          localStorage.removeItem('treastrack_parent_drive_folder');
+        }
         showToast('Google Drive & Gmail settings saved.');
       } catch (err) {
         showToast('Failed to save settings.');
