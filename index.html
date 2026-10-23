@@ -1404,13 +1404,13 @@
     const BLUE_FORM_SLOTS = [
       { key: 'debitFrom', label: 'Debit From (Client Name)' },
       { key: 'debitDept', label: 'Debit Department (3-4 Digit Code)' },
-      { key: 'debitExpense', label: 'Debit Expense Type (52015)' },
+      { key: 'debitExpense', label: 'Debit Expense Type (72015)' },
       { key: 'debitEvent', label: 'Debit Event Name' },
       { key: 'totalTransferred', label: 'Total to be Transferred' },
       { key: 'reasonForTransfer', label: 'Reason for Transfer' },
       { key: 'creditTo', label: 'Credit To (Backstage)' },
       { key: 'creditDept', label: 'Credit Department (BAC)' },
-      { key: 'creditExpense', label: 'Credit Expense Type (72015)' },
+      { key: 'creditExpense', label: 'Credit Expense Type (52015)' },
       { key: 'creditEvent', label: 'Credit Event Name' }
     ];
 
@@ -1527,14 +1527,14 @@
       const values = {
         debitFrom: clientName,
         debitDept: deptCode,
-        debitExpense: '52015',
+        debitExpense: '72015',
         debitEvent: eventName,
         totalTransferred: '£' + chargeFormatted,
         totalTransferredPlain: chargeFormatted,
         reasonForTransfer: `Production Charge for ${eventName}`,
         creditTo: 'Backstage',
         creditDept: 'BAC',
-        creditExpense: '72015',
+        creditExpense: '52015',
         creditEvent: eventName
       };
 
