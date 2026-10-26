@@ -870,6 +870,12 @@
         </div>
 
         <div class="form-group">
+          <label for="contactName">Contact Name (Optional)</label>
+          <input type="text" id="contactName" placeholder="e.g. Jane Doe">
+          <div class="field-hint">Primary contact or representative for this event.</div>
+        </div>
+
+        <div class="form-group">
           <label for="eventCharge">Event Charge (£)</label>
           <input type="number" id="eventCharge" step="0.01" min="0" required placeholder="0.00">
         </div>
@@ -1892,8 +1898,8 @@
       // 9. Amount (event value)
       const amountFormatted = chargeFormatted;
 
-      // 10. To (leave blank for the moment)
-      const toRecipient = '';
+      // 10. To (contact name if provided, otherwise blank)
+      const toRecipient = (eventObj.contactName || '').trim();
 
       const values = {
         invoiceNumber: invoiceNumber,
@@ -2113,6 +2119,9 @@
           drawForLabel(/total\s*ex(?:cl)?\s*vat|sub\s*total|ex\s*vat/i, slotValues.totalExVat, 'inline');
           drawForLabel(/\bvat\b|\btax\b/i, slotValues.vat, 'inline');
           drawForLabel(/total\s*inc(?:l)?\s*vat|total\s*(?:amount\s*)?due|grand\s*total|gross/i, slotValues.totalIncVat, 'inline');
+          if (slotValues.to) {
+            drawForLabel(/\bbill\s*to\b|\binvoice\s*to\b|\bto\b/i, slotValues.to, 'inline');
+          }
         }
 
         // 11. Download the edited copy of the invoice with name "INV[invoice number]"
@@ -2424,11 +2433,22 @@
       events = [];
     }
 
+    let eventsUpdated = false;
     events.forEach((ev) => {
       if (!ev.id) {
         ev.id = 'evt_' + Date.now() + '_' + Math.random().toString(36).substr(2, 7);
+        eventsUpdated = true;
+      }
+      if (ev.contactName === undefined) {
+        ev.contactName = '';
+        eventsUpdated = true;
       }
     });
+    if (eventsUpdated) {
+      try {
+        localStorage.setItem('treastrack_events', JSON.stringify(events));
+      } catch (err) {}
+    }
 
     function saveEvents() {
       try {
@@ -2517,7 +2537,7 @@
             </div>
           </div>
           <div class="event-dates">
-            ${escapeHtml(ev.startDate)} &mdash; ${escapeHtml(ev.endDate)}
+            ${escapeHtml(ev.startDate)} &mdash; ${escapeHtml(ev.endDate)}${ev.contactName ? ` &bull; Contact: <strong>${escapeHtml(ev.contactName)}</strong>` : ''}
           </div>
           <div class="card-footer-row">
             <div class="card-checkbox-group">
@@ -2617,6 +2637,7 @@
       modalTitleEl.textContent = 'Add Event';
       submitEventBtn.textContent = 'Save Event';
       eventForm.reset();
+      document.getElementById('contactName').value = '';
       clientCodeHint.textContent = '';
       clientCodeHint.classList.remove('unlisted');
       modalBackdrop.classList.add('open');
@@ -2630,6 +2651,7 @@
 
       document.getElementById('eventName').value = ev.name || '';
       document.getElementById('clientName').value = ev.clientName || '';
+      document.getElementById('contactName').value = ev.contactName || '';
       document.getElementById('eventCharge').value = ev.charge !== undefined ? ev.charge : '';
       document.getElementById('startDate').value = ev.startDate || '';
       document.getElementById('endDate').value = ev.endDate || '';
@@ -2646,6 +2668,7 @@
       modalBackdrop.classList.remove('open');
       editingEventId = null;
       eventForm.reset();
+      document.getElementById('contactName').value = '';
       clientCodeHint.textContent = '';
     }
 
@@ -2675,6 +2698,7 @@
         if (target) {
           target.name = document.getElementById('eventName').value.trim();
           target.clientName = document.getElementById('clientName').value.trim();
+          target.contactName = document.getElementById('contactName').value.trim();
           target.charge = document.getElementById('eventCharge').value;
           target.startDate = document.getElementById('startDate').value;
           target.endDate = document.getElementById('endDate').value;
@@ -2687,6 +2711,7 @@
           id: 'evt_' + Date.now() + '_' + Math.random().toString(36).substr(2, 7),
           name: document.getElementById('eventName').value.trim(),
           clientName: document.getElementById('clientName').value.trim(),
+          contactName: document.getElementById('contactName').value.trim(),
           charge: document.getElementById('eventCharge').value,
           startDate: document.getElementById('startDate').value,
           endDate: document.getElementById('endDate').value,
