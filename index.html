@@ -1971,7 +1971,7 @@
           totalExVat: hasPrintedPound ? values.totalExVat : values.totalExVatWithPound,
           vat: hasPrintedPound ? values.vat : values.vatWithPound,
           totalIncVat: hasPrintedPound ? values.totalIncVat : values.totalIncVatWithPound,
-          to: ''
+          to: values.to
         };
 
         if (fieldInfos.length > 0) {
@@ -2001,7 +2001,7 @@
           matchByNamePattern('totalExVat', [/total\s*ex(?:cl|cluding)?\s*vat/i, /sub\s*total/i, /net\s*total/i, /ex\s*vat/i, /total\s*net/i, /^net$/i]);
           matchByNamePattern('vat', [/^vat$/i, /vat\s*\(?20%?\)?/i, /vat\s*amount/i, /^tax$/i]);
           matchByNamePattern('totalIncVat', [/total\s*inc(?:l|luding)?\s*vat/i, /gross\s*total/i, /total\s*gross/i, /total\s*(?:amount\s*)?due/i, /grand\s*total/i, /^total$/i, /^amount\s*due$/i]);
-          matchByNamePattern('to', [/^bill\s*to$/i, /^invoice\s*to$/i, /^to$/i, /^recipient$/i, /^customer$/i]);
+          matchByNamePattern('to', [/bill\s*to/i, /invoice\s*to/i, /^to$/i, /recipient/i, /customer/i, /contact/i, /client/i, /attention/i, /attn/i]);
 
           function findClosestWidgetForPhrase(phrase, preferredDirection = 'right') {
             if (!phrase) return null;
@@ -2014,8 +2014,14 @@
               const dx = f.x - phrase.x;
 
               if (preferredDirection === 'below') {
-                if (phrase.y - f.y > 0 && phrase.y - f.y < 55 && Math.abs(f.x - phrase.x) < 120) {
+                if (phrase.y - f.y > 0 && phrase.y - f.y < 85 && Math.abs(f.x - phrase.x) < 140) {
                   const score = (phrase.y - f.y) * 2 + Math.abs(f.x - phrase.x);
+                  if (score < bestScore) {
+                    bestScore = score;
+                    bestField = f;
+                  }
+                } else if (dy < 24 && dx >= -10) {
+                  const score = dy * 3 + Math.max(0, f.x - phrase.endX) * 0.5;
                   if (score < bestScore) {
                     bestScore = score;
                     bestField = f;
@@ -2063,7 +2069,7 @@
           matchByPrintedLabel('totalExVat', /total\s*ex(?:cl|cluding)?\s*vat|sub\s*total|net\s*total|ex\s*vat/i);
           matchByPrintedLabel('vat', /\bvat\b|\btax\b/i);
           matchByPrintedLabel('totalIncVat', /total\s*inc(?:l|luding)?\s*vat|total\s*(?:amount\s*)?due|grand\s*total|gross/i);
-          matchByPrintedLabel('to', /\bbill\s*to\b|\binvoice\s*to\b|\bto\b/i);
+          matchByPrintedLabel('to', /\bbill\s*to\b|\binvoice\s*to\b|\bto:\b|^\s*to\b|\bcontact\b|\battn\b/i, 'below');
 
           // Fill all matched AcroForm fields
           for (const [key, val] of Object.entries(slotValues)) {
@@ -2123,7 +2129,29 @@
           drawForLabel(/\bvat\b|\btax\b/i, slotValues.vat, 'inline');
           drawForLabel(/total\s*inc(?:l)?\s*vat|total\s*(?:amount\s*)?due|grand\s*total|gross/i, slotValues.totalIncVat, 'inline');
           if (slotValues.to) {
-            drawForLabel(/\bbill\s*to\b|\binvoice\s*to\b|\bto\b/i, slotValues.to, 'inline');
+            const toPhrases = phrases.filter((p) => /\bbill\s*to\b|\binvoice\s*to\b|\bto:\b|^\s*to\s*$/i.test(p.text));
+            if (toPhrases.length > 0) {
+              const p = toPhrases[0];
+              if (p.text.toLowerCase().includes('bill to') || p.text.toLowerCase().includes('invoice to')) {
+                page.drawText(String(slotValues.to), {
+                  x: p.x,
+                  y: p.y - 18,
+                  size: 9.5,
+                  font,
+                  color: rgb(0, 0, 0)
+                });
+              } else {
+                page.drawText(String(slotValues.to), {
+                  x: p.endX + 10,
+                  y: p.y,
+                  size: 9.5,
+                  font,
+                  color: rgb(0, 0, 0)
+                });
+              }
+            } else {
+              drawForLabel(/\bbill\s*to\b|\binvoice\s*to\b|\bto\b/i, slotValues.to, 'inline');
+            }
           }
         }
 
