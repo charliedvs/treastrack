@@ -363,6 +363,13 @@
       align-items: center;
     }
 
+    .card-footer-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
     /* Modal / Overlay */
     .modal-backdrop {
       position: fixed;
@@ -924,9 +931,9 @@
           </div>
         </div>
 
-        <!-- Finance Template PDF -->
+        <!-- Finance Template PDF (Blue Form) -->
         <div>
-          <div style="font-weight: 600; font-size: 0.88rem; margin-bottom: 8px;">Finance Template PDF</div>
+          <div style="font-weight: 600; font-size: 0.88rem; margin-bottom: 8px;">Finance Template PDF (Blue Form)</div>
           <div style="padding: 12px 14px; background-color: var(--surface-light); border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 10px;">
             <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
               <span id="templateStatusText" style="font-size: 0.82rem; color: var(--text-muted); word-break: break-all;">No Finance Template PDF uploaded</span>
@@ -939,6 +946,25 @@
             </div>
             <div style="font-size: 0.78rem; color: var(--text-muted); line-height: 1.4;">
               Upload the BTS Blue Form PDF template once. It is saved in your browser storage and used to auto-generate Blue Forms.
+            </div>
+          </div>
+        </div>
+
+        <!-- Invoice Template PDF -->
+        <div>
+          <div style="font-weight: 600; font-size: 0.88rem; margin-bottom: 8px;">Invoice Template PDF</div>
+          <div style="padding: 12px 14px; background-color: var(--surface-light); border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
+              <span id="invoiceTemplateStatusText" style="font-size: 0.82rem; color: var(--text-muted); word-break: break-all;">No Invoice Template PDF uploaded</span>
+              <div>
+                <input type="file" id="invoiceTemplateFileInput" class="file-input-hidden" accept=".pdf,application/pdf">
+                <button type="button" id="uploadInvoiceTemplateBtn" class="btn-secondary btn-sm" title="Upload blank Invoice template PDF">
+                  <span id="uploadInvoiceTemplateText">Upload Invoice Template</span>
+                </button>
+              </div>
+            </div>
+            <div style="font-size: 0.78rem; color: var(--text-muted); line-height: 1.4;">
+              Upload the blank invoice PDF template once. It is saved in your browser storage and used to generate invoices for external clients.
             </div>
           </div>
         </div>
@@ -1079,6 +1105,9 @@
     let templatePdfBuffer = null;
     let templatePdfName = '';
     let templateDetectedFields = []; // AcroForm field names in reading order
+
+    let invoiceTemplatePdfBuffer = null;
+    let invoiceTemplatePdfName = '';
 
     function openPdfDb() {
       return new Promise((resolve, reject) => {
@@ -1897,11 +1926,64 @@
       templateFileInput.value = '';
     });
 
-    // Restore previously uploaded Template PDF from IndexedDB on startup
+    const invoiceTemplateFileInput = document.getElementById('invoiceTemplateFileInput');
+    const uploadInvoiceTemplateBtn = document.getElementById('uploadInvoiceTemplateBtn');
+    const uploadInvoiceTemplateText = document.getElementById('uploadInvoiceTemplateText');
+
+    uploadInvoiceTemplateBtn.addEventListener('click', () => invoiceTemplateFileInput.click());
+
+    async function handleInvoiceTemplateLoaded(name, buffer, save = true) {
+      invoiceTemplatePdfBuffer = buffer;
+      invoiceTemplatePdfName = name;
+      try {
+        await PDFLib.PDFDocument.load(buffer, { ignoreEncryption: true });
+        uploadInvoiceTemplateText.textContent = 'Change Invoice Template';
+        uploadInvoiceTemplateBtn.title = `Loaded: ${name} (click to replace)`;
+        if (invoiceTemplateStatusText) {
+          invoiceTemplateStatusText.textContent = `✓ Template loaded: ${name}`;
+          invoiceTemplateStatusText.style.color = 'var(--text-main)';
+        }
+        if (save) {
+          await savePdfToDb('invoice_template', name, buffer);
+          showToast(`Invoice Template "${name}" saved.`);
+        }
+      } catch (err) {
+        console.error('Failed to read invoice template PDF:', err);
+        uploadInvoiceTemplateText.textContent = 'Upload Invoice Template';
+        uploadInvoiceTemplateBtn.title = 'Error reading PDF file';
+        if (invoiceTemplateStatusText) {
+          invoiceTemplateStatusText.textContent = 'Error reading Invoice Template PDF file';
+          invoiceTemplateStatusText.style.color = 'var(--danger-text)';
+        }
+        showToast('Error reading Invoice Template PDF file.');
+      }
+    }
+
+    invoiceTemplateFileInput.addEventListener('change', async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const buffer = await file.arrayBuffer();
+      await handleInvoiceTemplateLoaded(file.name, buffer, true);
+      invoiceTemplateFileInput.value = '';
+    });
+
+    // Restore previously uploaded Template PDFs from IndexedDB on startup
     (async function restorePdfsOnStartup() {
-      const storedTemplate = await loadPdfFromDb('finance_template');
-      if (storedTemplate && storedTemplate.data) {
-        await handleTemplateLoaded(storedTemplate.name, storedTemplate.data, false);
+      try {
+        const storedTemplate = await loadPdfFromDb('finance_template');
+        if (storedTemplate && storedTemplate.data) {
+          await handleTemplateLoaded(storedTemplate.name, storedTemplate.data, false);
+        }
+      } catch (err) {
+        console.warn('Failed to load finance template on startup:', err);
+      }
+      try {
+        const storedInvoice = await loadPdfFromDb('invoice_template');
+        if (storedInvoice && storedInvoice.data) {
+          await handleInvoiceTemplateLoaded(storedInvoice.name, storedInvoice.data, false);
+        }
+      } catch (err) {
+        console.warn('Failed to load invoice template on startup:', err);
       }
     })();
 
@@ -1913,6 +1995,7 @@
     const closeSettingsModalBtn = document.getElementById('closeSettingsModalBtn');
     const closeSettingsBottomBtn = document.getElementById('closeSettingsBottomBtn');
     const templateStatusText = document.getElementById('templateStatusText');
+    const invoiceTemplateStatusText = document.getElementById('invoiceTemplateStatusText');
 
     const googleSetupForm = document.getElementById('googleSetupForm');
     const parentDriveFolderInput = document.getElementById('parentDriveFolderInput');
@@ -1928,6 +2011,14 @@
       } else {
         templateStatusText.textContent = 'No Finance Template PDF uploaded';
         templateStatusText.style.color = 'var(--text-muted)';
+      }
+
+      if (invoiceTemplatePdfName) {
+        invoiceTemplateStatusText.textContent = `✓ Template loaded: ${invoiceTemplatePdfName}`;
+        invoiceTemplateStatusText.style.color = 'var(--text-main)';
+      } else {
+        invoiceTemplateStatusText.textContent = 'No Invoice Template PDF uploaded';
+        invoiceTemplateStatusText.style.color = 'var(--text-muted)';
       }
       settingsModalBackdrop.classList.add('open');
     }
@@ -2045,7 +2136,7 @@
         clientCodeHint.textContent = `Department Code: ${record.code} (${record.name})`;
         clientCodeHint.classList.remove('unlisted');
       } else {
-        clientCodeHint.textContent = 'Client not listed — Blue Form disabled';
+        clientCodeHint.textContent = 'Client not listed — Invoice enabled, Blue Form disabled';
         clientCodeHint.classList.add('unlisted');
       }
     }
@@ -2114,7 +2205,10 @@
                 Invoice sent
               </label>
             </div>
-            <button class="btn-secondary btn-sm btn-blue-form" type="button" data-id="${ev.id}" ${isClientListed ? '' : 'disabled title="Client not listed — Blue Form not required"'}>Blue Form</button>
+            <div class="card-footer-actions">
+              <button class="btn-secondary btn-sm btn-blue-form" type="button" data-id="${ev.id}" ${isClientListed ? '' : 'disabled title="Client not listed — Blue Form not required"'}>Blue Form</button>
+              <button class="btn-secondary btn-sm btn-invoice" type="button" data-id="${ev.id}" ${!isClientListed ? '' : 'disabled title="Client listed in SU directory — Blue Form required instead"'}>Invoice</button>
+            </div>
           </div>
         `;
         eventsList.appendChild(card);
@@ -2141,6 +2235,22 @@
           const targetEvent = events.find((item) => item.id === id);
           if (targetEvent) {
             await generateBlueFormPdf(targetEvent);
+          }
+        });
+      });
+
+      // Attach Invoice button handlers on each event card
+      document.querySelectorAll('.btn-invoice').forEach((btn) => {
+        btn.addEventListener('click', async (e) => {
+          if (e.currentTarget.disabled) return;
+          const id = e.currentTarget.getAttribute('data-id');
+          const targetEvent = events.find((item) => item.id === id);
+          if (targetEvent) {
+            if (!invoiceTemplatePdfBuffer) {
+              showToast('Please upload an Invoice Template PDF in Settings first.');
+              return;
+            }
+            showToast(`Invoice template ready for "${targetEvent.name}". Generation functionality will be added next.`);
           }
         });
       });
