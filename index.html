@@ -972,9 +972,12 @@
             <div style="font-size: 0.78rem; color: var(--text-muted); line-height: 1.4;">
               Upload the blank invoice PDF template once. It is saved in your browser storage and used to generate invoices for external clients.
             </div>
-            <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 8px; border-top: 1px dashed var(--border-color); font-size: 0.82rem;">
-              <label for="nextInvoiceNumberInput" style="margin-bottom: 0; color: var(--text-main); font-size: 0.82rem;">Next Invoice Number (e.g. 1 &rarr; 0001):</label>
-              <input type="number" id="nextInvoiceNumberInput" min="1" step="1" style="width: 80px; padding: 4px 8px; font-size: 0.82rem;" value="1">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 8px; border-top: 1px dashed var(--border-color); font-size: 0.82rem; flex-wrap: wrap;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <label for="nextInvoiceNumberInput" style="margin-bottom: 0; color: var(--text-main); font-size: 0.82rem;">Next Invoice Number:</label>
+                <input type="number" id="nextInvoiceNumberInput" min="1" step="1" style="width: 75px; padding: 4px 8px; font-size: 0.82rem;" value="1">
+              </div>
+              <button type="button" id="resetInvoiceNumbersBtn" class="btn-secondary btn-sm" style="color: var(--danger-text);" title="Wipe all assigned invoice numbers and start back at 0001">Reset to 0001</button>
             </div>
           </div>
         </div>
@@ -2360,6 +2363,21 @@
       });
     }
 
+    const resetInvoiceNumbersBtn = document.getElementById('resetInvoiceNumbersBtn');
+    if (resetInvoiceNumbersBtn) {
+      resetInvoiceNumbersBtn.addEventListener('click', () => {
+        if (!confirm('Are you sure you want to reset invoice numbering back to 0001 and clear existing invoice numbers on all events?')) return;
+        localStorage.setItem('treastrack_next_invoice_number', '1');
+        if (nextInvoiceNumberInput) nextInvoiceNumberInput.value = '1';
+        events.forEach((ev) => {
+          delete ev.invoiceNumber;
+        });
+        saveEvents();
+        renderEvents();
+        showToast('✓ All invoice numbers wiped. Counter reset to 0001.');
+      });
+    }
+
     function closeSettingsModal() {
       settingsModalBackdrop.classList.remove('open');
     }
@@ -2444,6 +2462,19 @@
         eventsUpdated = true;
       }
     });
+
+    // One-time automatic wipe of all invoice numbers for a fresh start at 0001
+    if (!localStorage.getItem('treastrack_invoice_reset_v1')) {
+      localStorage.setItem('treastrack_next_invoice_number', '1');
+      events.forEach((ev) => {
+        if (ev.invoiceNumber) {
+          delete ev.invoiceNumber;
+          eventsUpdated = true;
+        }
+      });
+      localStorage.setItem('treastrack_invoice_reset_v1', 'true');
+    }
+
     if (eventsUpdated) {
       try {
         localStorage.setItem('treastrack_events', JSON.stringify(events));
