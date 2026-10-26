@@ -1901,8 +1901,8 @@
       // 9. Amount (event value)
       const amountFormatted = chargeFormatted;
 
-      // 10. To (contact name if provided, otherwise blank)
-      const toRecipient = (eventObj.contactName || '').trim();
+      // 10. To (contact name if provided, otherwise client name)
+      const toRecipient = (eventObj.contactName || '').trim() || (eventObj.clientName || '').trim();
 
       const values = {
         invoiceNumber: invoiceNumber,
@@ -2001,7 +2001,7 @@
           matchByNamePattern('totalExVat', [/total\s*ex(?:cl|cluding)?\s*vat/i, /sub\s*total/i, /net\s*total/i, /ex\s*vat/i, /total\s*net/i, /^net$/i]);
           matchByNamePattern('vat', [/^vat$/i, /vat\s*\(?20%?\)?/i, /vat\s*amount/i, /^tax$/i]);
           matchByNamePattern('totalIncVat', [/total\s*inc(?:l|luding)?\s*vat/i, /gross\s*total/i, /total\s*gross/i, /total\s*(?:amount\s*)?due/i, /grand\s*total/i, /^total$/i, /^amount\s*due$/i]);
-          matchByNamePattern('to', [/bill\s*to/i, /invoice\s*to/i, /^to$/i, /recipient/i, /customer/i, /contact/i, /client/i, /attention/i, /attn/i]);
+          matchByNamePattern('to', [/to\s*address/i, /^to/i, /bill\s*to/i, /invoice\s*to/i, /recipient/i, /customer/i, /contact/i, /client/i, /address/i, /attention/i, /attn/i]);
 
           function findClosestWidgetForPhrase(phrase, preferredDirection = 'right') {
             if (!phrase) return null;
@@ -2288,7 +2288,7 @@
       invoiceTemplatePdfBuffer = buffer;
       invoiceTemplatePdfName = name;
       try {
-        await PDFLib.PDFDocument.load(buffer, { ignoreEncryption: true });
+        await (window.PDFLib || PDFLib).PDFDocument.load(buffer, { ignoreEncryption: true });
         uploadInvoiceTemplateText.textContent = 'Change Invoice Template';
         uploadInvoiceTemplateBtn.title = `Loaded: ${name} (click to replace)`;
         if (invoiceTemplateStatusText) {
