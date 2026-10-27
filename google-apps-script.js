@@ -51,9 +51,15 @@ function doPost(e) {
     }
     var payload = JSON.parse(rawContents);
     var eventName = (payload.eventName || 'Untitled Event').trim();
-    var fileName = (payload.fileName || ('BF_' + eventName + '.pdf')).trim();
+    var fileName = (payload.fileName || '').trim();
     var pdfBase64 = payload.pdfBase64 || '';
     var parentFolderId = extractFolderId(payload.parentFolderId || '');
+    var documentType = String(payload.documentType || (fileName.indexOf('INV') === 0 ? 'invoice' : 'blue_form')).toLowerCase();
+    var isInvoice = (documentType === 'invoice');
+
+    if (!fileName) {
+      fileName = isInvoice ? ('INV_' + eventName + '.pdf') : ('BF_' + eventName + '.pdf');
+    }
 
     if (!pdfBase64) {
       return jsonResponse({ success: false, error: 'Missing PDF data.' });
@@ -64,9 +70,9 @@ function doPost(e) {
 
     // Sanitize eventName and fileName to prevent directory traversal or control characters
     eventName = eventName.replace(/[\x00-\x1f\\/:*?"<>|]/g, '_').substring(0, 100).trim() || 'Untitled Event';
-    fileName = fileName.replace(/[\x00-\x1f\\/:*?"<>|]/g, '_').substring(0, 100).trim() || 'BF_Event.pdf';
+    fileName = fileName.replace(/[\x00-\x1f\\/:*?"<>|]/g, '_').substring(0, 100).trim() || (isInvoice ? 'INV_Event.pdf' : 'BF_Event.pdf');
 
-    // 1. Decode the Blue Form PDF bytes
+    // 1. Decode the PDF bytes
     var pdfBytes = Utilities.base64Decode(pdfBase64);
     var pdfBlob = Utilities.newBlob(pdfBytes, 'application/pdf', fileName);
 
@@ -77,16 +83,17 @@ function doPost(e) {
 
     var eventFolder = getOrCreateSubfolder(parentFolder, eventName);
 
-    // Save BF_{event name}.pdf into the event folder
+    // Save the PDF file into the event folder
     var savedFile = eventFolder.createFile(pdfBlob);
 
-    // 3. Build the Gmail Draft ("Blue Form - {event name}") with automatic Gmail signature
-    var subject = 'Blue Form - ' + eventName;
-    var plainBody = 'Hi,\n\nPlease find attached the Blue Form for ' + eventName;
+    // 3. Build the Gmail Draft with automatic Gmail signature
+    var subject = isInvoice ? ('Invoice - ' + eventName) : ('Blue Form - ' + eventName);
+    var docName = isInvoice ? 'invoice' : 'Blue Form';
+    var plainBody = 'Hi,\n\nPlease find attached the ' + docName + ' for ' + eventName;
     var htmlBody =
       '<div style="font-family: Arial, sans-serif; font-size: 14px; color: #222222;">' +
       '<p>Hi,</p>' +
-      '<p>Please find attached the Blue Form for ' + escapeHtml(eventName) + '</p>' +
+      '<p>Please find attached the ' + docName + ' for ' + escapeHtml(eventName) + '</p>' +
       '</div>';
 
     var signatureHtml = getGmailSignatureHtml();

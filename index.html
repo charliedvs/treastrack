@@ -1818,7 +1818,8 @@
             parentFolderId: getEffectiveParentDriveFolder(),
             eventName,
             fileName,
-            pdfBytes
+            pdfBytes,
+            documentType: 'blue_form'
           });
         } else {
           showToast(`Downloaded "${fileName}" (Client: ${clientName} → Dept: ${deptCode})`);
@@ -2156,7 +2157,20 @@
         document.body.removeChild(link);
         setTimeout(() => URL.revokeObjectURL(url), 5000);
 
-        showToast(`✓ Downloaded "${fileName}" (Invoice #${invoiceNumber})`, 5000);
+        const appsScriptUrl = getEffectiveAppsScriptUrl();
+        if (appsScriptUrl) {
+          showToast(`Downloaded "${fileName}". Syncing to Google Drive & creating Gmail draft...`, 5000);
+          await triggerGoogleDriveAndGmailAutomation({
+            appsScriptUrl,
+            parentFolderId: getEffectiveParentDriveFolder(),
+            eventName,
+            fileName,
+            pdfBytes,
+            documentType: 'invoice'
+          });
+        } else {
+          showToast(`✓ Downloaded "${fileName}" (Invoice #${invoiceNumber})`, 5000);
+        }
       } catch (err) {
         console.error('Error generating Invoice PDF:', err);
         showToast('Error generating Invoice PDF: ' + (err.message || 'Unknown error'));
@@ -2173,7 +2187,7 @@
       return btoa(binary);
     }
 
-    async function triggerGoogleDriveAndGmailAutomation({ appsScriptUrl, parentFolderId, eventName, fileName, pdfBytes }) {
+    async function triggerGoogleDriveAndGmailAutomation({ appsScriptUrl, parentFolderId, eventName, fileName, pdfBytes, documentType = 'blue_form' }) {
       const cleanUrl = appsScriptUrl.trim();
       if (!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec/i.test(cleanUrl)) {
         showToast('Invalid Apps Script URL: make sure it is the Web App URL ending in /exec.', 6000);
@@ -2186,7 +2200,8 @@
           eventName,
           fileName,
           pdfBase64,
-          parentFolderId
+          parentFolderId,
+          documentType
         };
 
         // credentials: 'omit' prevents the browser from sending multi-account Google cookies
