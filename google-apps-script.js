@@ -86,29 +86,33 @@ function doPost(e) {
     // Save the PDF file into the event folder
     var savedFile = eventFolder.createFile(pdfBlob);
 
-    // 3. Build the Gmail Draft with automatic Gmail signature
-    var subject = isInvoice ? ('Invoice - ' + eventName) : ('Blue Form - ' + eventName);
-    var docName = isInvoice ? 'invoice' : 'Blue Form';
-    var plainBody = 'Hi,\n\nPlease find attached the ' + docName + ' for ' + eventName;
-    var htmlBody =
-      '<div style="font-family: Arial, sans-serif; font-size: 14px; color: #222222;">' +
-      '<p>Hi,</p>' +
-      '<p>Please find attached the ' + docName + ' for ' + escapeHtml(eventName) + '</p>' +
-      '</div>';
+    // 3. Build the Gmail Draft only for Blue Forms (skipped for Invoices)
+    var skipDraft = (payload.skipDraft === true || isInvoice);
+    var draftCreated = false;
+    if (!skipDraft) {
+      var subject = 'Blue Form - ' + eventName;
+      var plainBody = 'Hi,\n\nPlease find attached the Blue Form for ' + eventName;
+      var htmlBody =
+        '<div style="font-family: Arial, sans-serif; font-size: 14px; color: #222222;">' +
+        '<p>Hi,</p>' +
+        '<p>Please find attached the Blue Form for ' + escapeHtml(eventName) + '</p>' +
+        '</div>';
 
-    var signatureHtml = getGmailSignatureHtml();
-    if (signatureHtml) {
-      htmlBody += '<br>' + signatureHtml;
+      var signatureHtml = getGmailSignatureHtml();
+      if (signatureHtml) {
+        htmlBody += '<br>' + signatureHtml;
+      }
+
+      createGmailDraft(subject, plainBody, htmlBody, pdfBlob);
+      draftCreated = true;
     }
-
-    createGmailDraft(subject, plainBody, htmlBody, pdfBlob);
 
     return jsonResponse({
       success: true,
       folderName: eventFolder.getName(),
       folderUrl: eventFolder.getUrl(),
       fileUrl: savedFile.getUrl(),
-      signatureIncluded: Boolean(signatureHtml)
+      draftCreated: draftCreated
     });
   } catch (err) {
     return jsonResponse({

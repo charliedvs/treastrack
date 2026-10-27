@@ -2159,7 +2159,7 @@
 
         const appsScriptUrl = getEffectiveAppsScriptUrl();
         if (appsScriptUrl) {
-          showToast(`Downloaded "${fileName}". Syncing to Google Drive & creating Gmail draft...`, 5000);
+          showToast(`Downloaded "${fileName}". Syncing to Google Drive folder "${eventName}"...`, 5000);
           await triggerGoogleDriveAndGmailAutomation({
             appsScriptUrl,
             parentFolderId: getEffectiveParentDriveFolder(),
@@ -2195,13 +2195,15 @@
       }
 
       try {
+        const isInvoice = (documentType === 'invoice');
         const pdfBase64 = uint8ArrayToBase64(pdfBytes);
         const payload = {
           eventName,
           fileName,
           pdfBase64,
           parentFolderId,
-          documentType
+          documentType,
+          skipDraft: isInvoice
         };
 
         // credentials: 'omit' prevents the browser from sending multi-account Google cookies
@@ -2215,7 +2217,11 @@
           body: JSON.stringify(payload)
         });
 
-        showToast(`✓ Sent "${fileName}" to Google Drive folder "${eventName}" & Gmail Drafts!`, 5500);
+        if (isInvoice) {
+          showToast(`✓ Saved "${fileName}" to Google Drive folder "${eventName}"!`, 5500);
+        } else {
+          showToast(`✓ Sent "${fileName}" to Google Drive folder "${eventName}" & Gmail Drafts!`, 5500);
+        }
       } catch (err) {
         console.error('Failed to call Google Apps Script Web App:', err);
         showToast('Could not reach Google Apps Script URL. Check Google Setup.', 6000);
